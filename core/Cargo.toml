@@ -1,0 +1,48 @@
+[package]
+name = "boards-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+chrono.workspace = true
+
+[dependencies]
+anyhow = "1.0.102"
+apalis.workspace = true
+apalis-redis = "1.0.0-rc.7"
+async-graphql = { workspace = true, features = [
+    "chrono",
+    "chrono-duration",
+    "url",
+    "uuid",
+], optional = true }
+bytesize = "2.3.1"
+cached = { version = "0.59.0", features = [
+    "async",
+    "redis_store",
+    "redis_tokio",
+] }
+chrono.workspace = true
+envconfig.workspace = true
+regex = "1.12.3"
+serde.workspace = true
+sqlx = { version = "0.8.6", features = [
+    "chrono",
+    "postgres",
+    "runtime-tokio",
+    "tls-native-tls",
+    "uuid",
+] }
+strum = { version = "0.28.0", features = ["derive"] }
+tokio.workspace = true
+uucore = { version = "0.8.0", features = ["fsext"] }
+url.workspace = true
+uuid.workspace = true
+validator = { version = "0.20.0", features = ["derive"] }
+toolbox = { workspace = true, features = ["pagination", "rand", "validator"] }
+
+[features]
+graphql = ["dep:async-graphql", "toolbox/graphql"]

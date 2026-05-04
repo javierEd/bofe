@@ -1,0 +1,20 @@
+name: Setup Rust
+description: Setup Rust environment with dependencies and database configuration
+
+runs:
+    using: composite
+    steps:
+        - uses: actions/cache@v5
+          with:
+              path: |
+                  ~/.cargo/
+                  ~/.rustup/
+                  target/
+              key: ${{ runner.os }}-cargo-{{ hashFiles('**/Cargo.lock') }}
+        - uses: cargo-bins/cargo-binstall@main
+        - name: Install SQLx CLI
+          shell: bash
+          run: cargo binstall -y sqlx-cli@0.8.6
+        - name: Run database migrations
+          shell: bash
+          run: sqlx database setup

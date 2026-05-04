@@ -1,0 +1,16 @@
+[package]
+name = "boards-monitor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0.102"
+apalis = { workspace = true, features = ["sentry"] }
+sentry = { workspace = true, features = ["tower"] }
+tokio.workspace = true
+tracing.workspace = true
+boards-core.workspace = true
+toolbox = { workspace = true, features = ["mailer"] }
