@@ -786,6 +786,7 @@ dependencies = [
  "envconfig",
  "regex",
  "serde",
+ "serde_json",
  "sqlx",
  "strum",
  "tokio",

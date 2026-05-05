@@ -1,31 +1,32 @@
-use async_graphql::{Context, EmptyMutation, EmptySubscription, Schema, SchemaBuilder};
+use async_graphql::{Context, EmptySubscription, Schema, SchemaBuilder};
 
 use toolbox::identity_client::IdentityClient;
 
 use crate::models::User;
 
 mod guards;
+mod mutation_root;
 mod objects;
 mod query_root;
 
+use mutation_root::MutationRoot;
 use query_root::QueryRoot;
 
-pub type GraphqlSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
+pub type GraphqlSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
 pub trait GraphqlSchemaExt {
-    fn builder() -> SchemaBuilder<QueryRoot, EmptyMutation, EmptySubscription>;
+    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, EmptySubscription>;
 }
 
 impl GraphqlSchemaExt for GraphqlSchema {
-    fn builder() -> SchemaBuilder<QueryRoot, EmptyMutation, EmptySubscription> {
-        Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, EmptySubscription> {
+        Schema::build(QueryRoot, MutationRoot, EmptySubscription)
     }
 }
 
 trait CustomContext {
     fn identity_client(&self) -> &IdentityClient;
 
-    #[allow(dead_code)]
     fn user(&self) -> &User;
 
     fn user_opt(&self) -> Option<&User>;
