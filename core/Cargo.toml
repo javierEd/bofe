@@ -29,6 +29,7 @@ chrono.workspace = true
 envconfig.workspace = true
 regex = "1.12.3"
 serde.workspace = true
+serde_json.workspace = true
 sqlx = { version = "0.8.6", features = [
     "chrono",
     "postgres",

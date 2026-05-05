@@ -1,6 +1,6 @@
 # Boards
 
-Kanban style boards.
+Kanban style lists.
 
 ## Build Requirements
 

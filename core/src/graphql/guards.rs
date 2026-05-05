@@ -2,7 +2,6 @@ use async_graphql::{Context, Guard, Result};
 
 use super::CustomContext;
 
-#[allow(dead_code)]
 #[derive(Default)]
 pub struct UserGuard;
 
