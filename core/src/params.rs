@@ -26,3 +26,11 @@ pub struct BoardParams {
     pub description: String,
     pub visibility: BoardVisibility,
 }
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
+pub struct ListParams {
+    pub board_id: Uuid,
+    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    pub name: String,
+}

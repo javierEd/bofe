@@ -14,6 +14,6 @@ CREATE TABLE boards (
 );
 
 CREATE UNIQUE INDEX index_boards_on_user_id_name ON boards USING btree (user_id, name);
-CREATE INDEX index_boards_on_slug ON boards USING btree (slug);
+CREATE UNIQUE INDEX index_boards_on_slug ON boards USING btree (slug);
 
 SELECT manage_updated_at('boards');

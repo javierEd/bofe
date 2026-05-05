@@ -44,7 +44,7 @@ async fn board_slug_exists(slug: &str) -> bool {
     ty = "AsyncRedisCache<Uuid, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_ID).await }"##
 )]
-async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
+pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

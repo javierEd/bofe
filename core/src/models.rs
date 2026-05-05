@@ -14,8 +14,8 @@ use crate::enums::BoardVisibility;
 pub struct Board<'a> {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub slug: Cow<'a, str>,
     pub name: Cow<'a, str>,
+    pub slug: Cow<'a, str>,
     pub description: Cow<'a, str>,
     pub visibility: BoardVisibility,
     pub created_at: DateTime<Utc>,
@@ -37,6 +37,22 @@ impl Board<'_> {
 
     pub async fn user(&self) -> sqlx::Result<User> {
         commands::get_user_by_id(self.user_id).await
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct List<'a> {
+    pub id: Uuid,
+    pub board_id: Uuid,
+    pub name: Cow<'a, str>,
+    pub position: i16,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for List<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
     }
 }
 

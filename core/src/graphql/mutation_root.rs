@@ -5,8 +5,8 @@ use validator::ValidationErrors;
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::UserGuard;
-use crate::graphql::objects::BoardObject;
-use crate::params::BoardParams;
+use crate::graphql::objects::{BoardObject, ListObject};
+use crate::params::{BoardParams, ListParams};
 
 pub struct MutationRoot;
 
@@ -39,5 +39,15 @@ impl MutationRoot {
             .await
             .map(BoardObject)
             .map_err(|errors| to_mutation_error("Failed to create board", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn create_list(&self, ctx: &Context<'_>, params: ListParams) -> Result<ListObject<'_>> {
+        let user = ctx.user();
+
+        commands::insert_list(user, params)
+            .await
+            .map(ListObject)
+            .map_err(|errors| to_mutation_error("Failed to create list", errors))
     }
 }
