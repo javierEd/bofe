@@ -29,6 +29,10 @@ impl Display for Board<'_> {
 }
 
 impl Board<'_> {
+    pub fn is_editable(&self, user: Option<&User>) -> bool {
+        Some(self.user_id) == user.map(|u| u.id)
+    }
+
     pub fn is_visible(&self, target_user: Option<&User>) -> bool {
         Some(self.user_id) == target_user.map(|u| u.id)
             || (self.visibility == BoardVisibility::Users && target_user.is_some())
@@ -53,6 +57,12 @@ pub struct List<'a> {
 impl Display for List<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.id)
+    }
+}
+
+impl List<'_> {
+    pub async fn board(&self) -> sqlx::Result<Board<'_>> {
+        commands::get_board_by_id(self.board_id).await
     }
 }
 

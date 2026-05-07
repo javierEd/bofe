@@ -6,10 +6,10 @@ CREATE TABLE lists (
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NULL,
     CONSTRAINT pkey_lists PRIMARY KEY (id),
-    CONSTRAINT fkey_lists_to_boards FOREIGN KEY (board_id) REFERENCES boards (id) ON DELETE CASCADE
+    CONSTRAINT fkey_lists_to_boards FOREIGN KEY (board_id) REFERENCES boards (id) ON DELETE CASCADE,
+    CONSTRAINT index_lists_on_board_id_position UNIQUE (board_id, position) DEFERRABLE
 );
 
 CREATE UNIQUE INDEX index_lists_on_board_id_name ON lists USING btree (board_id, name);
-CREATE UNIQUE INDEX index_lists_on_board_id_position ON lists USING btree (board_id, position);
 
 SELECT manage_updated_at('lists');

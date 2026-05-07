@@ -68,6 +68,10 @@ impl BoardObject<'_> {
         .await
     }
 
+    async fn is_editable(&self, ctx: &Context<'_>) -> bool {
+        self.0.is_editable(ctx.user_opt())
+    }
+
     async fn created_at(&self) -> DateTime<Utc> {
         self.0.created_at
     }
