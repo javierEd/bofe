@@ -93,6 +93,60 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'a>) ->
     .await
 }
 
+pub async fn update_card_list<'a>(
+    user: &User,
+    card: &Card<'_>,
+    new_list: &List<'_>,
+    position: i16,
+) -> ValidationResult<Card<'a>> {
+    let list = card.list().await.or_validation_errors()?;
+    let board = list.board().await.or_validation_errors()?;
+
+    if board.user_id != user.id || board.id != new_list.board_id || list.id == new_list.id || position < 0 {
+        return Err(ValidationErrors::new());
+    }
+
+    let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
+
+    sqlx::query!("SET CONSTRAINTS ALL DEFERRED")
+        .execute(&mut *transaction)
+        .await
+        .or_validation_errors()?;
+
+    sqlx::query!(
+        "UPDATE cards SET position = position + 1 WHERE list_id = $1 AND position >= $2",
+        new_list.id, // $1
+        position,    // $2
+    )
+    .execute(&mut *transaction)
+    .await
+    .or_validation_errors()?;
+
+    let updated_card = sqlx::query_as!(
+        Card,
+        "UPDATE cards SET list_id = $1, position = $2 WHERE id = $3 RETURNING *",
+        new_list.id, // $1
+        position,    // $2
+        card.id,     // $3
+    )
+    .fetch_one(&mut *transaction)
+    .await
+    .or_validation_errors()?;
+
+    sqlx::query!(
+        "UPDATE cards SET position = position - 1 WHERE list_id = $1 AND position > $2",
+        list.id,       // $1
+        card.position, // $2
+    )
+    .execute(&mut *transaction)
+    .await
+    .or_validation_errors()?;
+
+    transaction.commit().await.or_validation_errors()?;
+
+    Ok(updated_card)
+}
+
 pub async fn update_card_position<'a>(user: &User, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
     let list = card.list().await.or_validation_errors()?;
     let board = list.board().await.or_validation_errors()?;

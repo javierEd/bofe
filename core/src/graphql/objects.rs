@@ -89,6 +89,10 @@ impl CardObject<'_> {
         self.0.id.into()
     }
 
+    async fn list_id(&self) -> Uuid {
+        self.0.list_id
+    }
+
     async fn content(&self) -> &str {
         &self.0.content
     }
