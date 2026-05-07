@@ -63,6 +63,24 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn update_card_list(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        list_id: Uuid,
+        position: i16,
+    ) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+        let card = commands::get_card_by_id(id).await?;
+        let new_list = commands::get_list_by_id(list_id).await?;
+
+        commands::update_card_list(user, &card, &new_list, position)
+            .await
+            .map(CardObject)
+            .map_err(|errors| to_mutation_error("Failed to update card list", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_card_position(&self, ctx: &Context<'_>, id: Uuid, position: i16) -> Result<CardObject<'_>> {
         let user = ctx.user();
         let card = commands::get_card_by_id(id).await?;
