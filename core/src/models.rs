@@ -44,7 +44,21 @@ impl Board<'_> {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+pub struct Card<'a> {
+    pub id: Uuid,
+    pub list_id: Uuid,
+    pub content: Cow<'a, str>,
+    pub position: i16,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Card<'_> {
+    pub async fn list(&self) -> sqlx::Result<List<'_>> {
+        commands::get_list_by_id(self.list_id).await
+    }
+}
+
 pub struct List<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
@@ -54,15 +68,17 @@ pub struct List<'a> {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl Display for List<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
-}
-
 impl List<'_> {
     pub async fn board(&self) -> sqlx::Result<Board<'_>> {
         commands::get_board_by_id(self.board_id).await
+    }
+
+    pub async fn is_visible(&self, target_user: Option<&User>) -> sqlx::Result<bool> {
+        let board = self.board().await?;
+
+        Ok(Some(board.user_id) == target_user.map(|u| u.id)
+            || (board.visibility == BoardVisibility::Users && target_user.is_some())
+            || board.visibility == BoardVisibility::Public)
     }
 }
 

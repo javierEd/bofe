@@ -24,7 +24,7 @@ async fn list_name_exists(board: &Board<'_>, name: &str) -> bool {
     .is_ok()
 }
 
-pub async fn get_list_by_id(id: Uuid) -> sqlx::Result<List<'static>> {
+pub async fn get_list_by_id<'a>(id: Uuid) -> sqlx::Result<List<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

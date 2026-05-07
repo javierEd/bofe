@@ -9,10 +9,12 @@ use crate::config::STORAGE_CONFIG;
 use crate::constants::CACHE_PREFIX_GET_IDENTITY_USER;
 
 mod board_commands;
+mod card_commands;
 mod list_commands;
 mod user_commands;
 
 pub use board_commands::*;
+pub use card_commands::*;
 pub use list_commands::*;
 pub use user_commands::*;
 

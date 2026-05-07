@@ -1,12 +1,13 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, ID, Object, Result};
+use toolbox::graphql::IDExt;
 use toolbox::pagination::CursorParams;
 use uuid::Uuid;
 
 use crate::Info;
 use crate::commands;
 use crate::graphql::CustomContext;
-use crate::graphql::objects::{BoardObject, InfoObject, UserObject};
+use crate::graphql::objects::{BoardObject, InfoObject, ListObject, UserObject};
 
 pub struct QueryRoot;
 
@@ -58,6 +59,19 @@ impl QueryRoot {
 
     async fn info(&self) -> InfoObject {
         InfoObject(Info::default())
+    }
+
+    async fn list(&self, ctx: &Context<'_>, id: ID) -> Result<Option<ListObject<'_>>> {
+        let id = id.try_into_uuid()?;
+        let user = ctx.user_opt();
+
+        let list = commands::get_list_by_id(id).await?;
+
+        if list.is_visible(user).await? {
+            Ok(Some(ListObject(list)))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn user(&self, ctx: &Context<'_>, username: String) -> Option<UserObject> {
