@@ -1,14 +1,10 @@
-use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use toolbox::cache::redis_cache_store;
 use toolbox::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 use toolbox::pagination::{CursorPage, CursorParams};
 use toolbox::validator::{OrValidationErrors, ValidationResult};
 
-use crate::constants::CACHE_PREFIX_GET_LIST_BY_ID;
 use crate::db_pool;
 use crate::models::{Board, List, User};
 use crate::params::ListParams;
@@ -28,12 +24,7 @@ async fn list_name_exists(board: &Board<'_>, name: &str) -> bool {
     .is_ok()
 }
 
-#[io_cached(
-    map_error = r##"|_| sqlx::Error::RowNotFound"##,
-    ty = "AsyncRedisCache<Uuid, List<'_>>",
-    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_LIST_BY_ID).await }"##
-)]
-async fn get_list_by_id(id: Uuid) -> sqlx::Result<List<'static>> {
+pub async fn get_list_by_id(id: Uuid) -> sqlx::Result<List<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -120,4 +111,60 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
         },
     )
     .await
+}
+
+pub async fn update_list_position<'a>(user: &User, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
+    let board = list.board().await.or_validation_errors()?;
+
+    if board.user_id != user.id || position < 0 || position == list.position {
+        return Err(ValidationErrors::new());
+    }
+
+    let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
+
+    sqlx::query!("SET CONSTRAINTS ALL DEFERRED")
+        .execute(&mut *transaction)
+        .await
+        .or_validation_errors()?;
+
+    sqlx::query!("UPDATE lists SET position = -1 WHERE id = $1", list.id)
+        .execute(&mut *transaction)
+        .await
+        .or_validation_errors()?;
+
+    if position > list.position {
+        sqlx::query!(
+            "UPDATE lists SET position = position - 1 WHERE board_id = $1 AND position BETWEEN $2 AND $3",
+            board.id,          // $1
+            list.position + 1, // $2
+            position,          // $3
+        )
+        .execute(&mut *transaction)
+        .await
+        .or_validation_errors()?;
+    } else {
+        sqlx::query!(
+            "UPDATE lists SET position = position + 1 WHERE board_id = $1 AND position BETWEEN $2 AND $3",
+            board.id,          // $1
+            position,          // $2
+            list.position - 1, // $3
+        )
+        .execute(&mut *transaction)
+        .await
+        .or_validation_errors()?;
+    }
+
+    let list = sqlx::query_as!(
+        List,
+        "UPDATE lists SET position = $1 WHERE id = $2 RETURNING *",
+        position, // $1
+        list.id,  // $2
+    )
+    .fetch_one(&mut *transaction)
+    .await
+    .or_validation_errors()?;
+
+    transaction.commit().await.or_validation_errors()?;
+
+    Ok(list)
 }

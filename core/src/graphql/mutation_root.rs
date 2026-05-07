@@ -1,5 +1,6 @@
 use async_graphql::dynamic::indexmap::IndexMap;
 use async_graphql::{Context, Error, ErrorExtensions, Name, Object, Result, Value};
+use uuid::Uuid;
 use validator::ValidationErrors;
 
 use crate::commands;
@@ -49,5 +50,16 @@ impl MutationRoot {
             .await
             .map(ListObject)
             .map_err(|errors| to_mutation_error("Failed to create list", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_list_position(&self, ctx: &Context<'_>, id: Uuid, position: i16) -> Result<ListObject<'_>> {
+        let user = ctx.user();
+        let list = commands::get_list_by_id(id).await?;
+
+        commands::update_list_position(user, &list, position)
+            .await
+            .map(ListObject)
+            .map_err(|errors| to_mutation_error("Failed to update list position", errors))
     }
 }
