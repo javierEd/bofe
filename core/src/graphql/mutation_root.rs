@@ -6,8 +6,8 @@ use validator::ValidationErrors;
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::UserGuard;
-use crate::graphql::objects::{BoardObject, ListObject};
-use crate::params::{BoardParams, ListParams};
+use crate::graphql::objects::{BoardObject, CardObject, ListObject};
+use crate::params::{BoardParams, CardParams, ListParams};
 
 pub struct MutationRoot;
 
@@ -43,6 +43,16 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn create_card(&self, ctx: &Context<'_>, params: CardParams) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+
+        commands::insert_card(user, params)
+            .await
+            .map(CardObject)
+            .map_err(|errors| to_mutation_error("Failed to create card", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn create_list(&self, ctx: &Context<'_>, params: ListParams) -> Result<ListObject<'_>> {
         let user = ctx.user();
 
@@ -50,6 +60,17 @@ impl MutationRoot {
             .await
             .map(ListObject)
             .map_err(|errors| to_mutation_error("Failed to create list", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_card_position(&self, ctx: &Context<'_>, id: Uuid, position: i16) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+        let card = commands::get_card_by_id(id).await?;
+
+        commands::update_card_position(user, &card, position)
+            .await
+            .map(CardObject)
+            .map_err(|errors| to_mutation_error("Failed to update card position", errors))
     }
 
     #[graphql(guard = "UserGuard")]

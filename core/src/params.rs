@@ -29,6 +29,14 @@ pub struct BoardParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub struct CardParams {
+    pub list_id: Uuid,
+    #[validate(length(min = 1, max = 1024, message = "Can't be blank"))]
+    pub content: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub struct ListParams {
     pub board_id: Uuid,
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]

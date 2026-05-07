@@ -10,7 +10,7 @@ use crate::Info;
 use crate::commands;
 use crate::enums::BoardVisibility;
 use crate::graphql::CustomContext;
-use crate::models::{Board, List, User};
+use crate::models::{Board, Card, List, User};
 
 pub struct BoardObject<'a>(pub Board<'a>);
 
@@ -81,6 +81,31 @@ impl BoardObject<'_> {
     }
 }
 
+pub struct CardObject<'a>(pub Card<'a>);
+
+#[Object]
+impl CardObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn content(&self) -> &str {
+        &self.0.content
+    }
+
+    async fn position(&self) -> i16 {
+        self.0.position
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
 pub struct InfoObject(pub Info);
 
 #[Object]
@@ -108,6 +133,34 @@ impl ListObject<'_> {
 
     async fn position(&self) -> i16 {
         self.0.position
+    }
+
+    async fn cards(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> Result<Connection<Uuid, CardObject<'_>, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page = commands::paginate_cards(CursorParams { after, first }, &self.0).await;
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|card| Edge::new(card.id, CardObject(card))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
     }
 
     async fn created_at(&self) -> DateTime<Utc> {
