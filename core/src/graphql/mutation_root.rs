@@ -63,6 +63,17 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn update_board(&self, ctx: &Context<'_>, id: Uuid, params: BoardParams) -> Result<BoardObject<'_>> {
+        let user = ctx.user();
+        let board = commands::get_board_by_id(id).await?;
+
+        commands::update_board(user, &board, params)
+            .await
+            .map(BoardObject)
+            .map_err(|errors| to_mutation_error("Failed to update board", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_card_list(
         &self,
         ctx: &Context<'_>,

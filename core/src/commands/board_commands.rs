@@ -3,7 +3,7 @@ use cached::proc_macro::io_cached;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use toolbox::cache::redis_cache_store;
+use toolbox::cache::{AsyncRedisCacheExt, redis_cache_store};
 use toolbox::constants::ERROR_ALREADY_EXISTS;
 use toolbox::pagination::{CursorPage, CursorParams};
 use toolbox::validator::{OrValidationErrors, ValidationResult};
@@ -14,25 +14,29 @@ use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
 use crate::params::BoardParams;
 
-async fn board_name_exists(user: &User, name: &str) -> bool {
+async fn board_name_exists(user: &User, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
+    let board_id = board.map(|b| b.id);
 
     sqlx::query!(
-        "SELECT id FROM boards WHERE user_id = $1 AND LOWER(name) = $2 LIMIT 1",
-        user.id,             // $1
-        name.to_lowercase()  // $2
+        "SELECT id FROM boards WHERE user_id = $1 AND id != $2 AND LOWER(name) = LOWER($3) LIMIT 1",
+        user.id,  // $1
+        board_id, // $2
+        name      // $3
     )
     .fetch_one(db_pool)
     .await
     .is_ok()
 }
 
-async fn board_slug_exists(slug: &str) -> bool {
+async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
     let db_pool = db_pool().await;
+    let board_id = board.map(|b| b.id);
 
     sqlx::query!(
-        "SELECT id FROM boards WHERE LOWER(slug) = $1 LIMIT 1",
-        slug.to_lowercase() // $2
+        "SELECT id FROM boards WHERE id != $1 AND LOWER(slug) = LOWER($2) LIMIT 1",
+        board_id, // $1
+        slug      // $2
     )
     .fetch_one(db_pool)
     .await
@@ -111,11 +115,15 @@ pub async fn insert_board<'a>(user: &User, params: BoardParams) -> ValidationRes
 
     let mut validation_errors = ValidationErrors::new();
 
-    if board_name_exists(user, &params.name).await {
+    let name = params.name.trim();
+    let slug = params.slug.trim().to_lowercase();
+    let description = params.description.trim();
+
+    if board_name_exists(user, None, name).await {
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
     }
 
-    if board_slug_exists(&params.slug).await {
+    if board_slug_exists(None, &slug).await {
         validation_errors.add("slug", ERROR_ALREADY_EXISTS.clone());
     }
 
@@ -138,9 +146,9 @@ pub async fn insert_board<'a>(user: &User, params: BoardParams) -> ValidationRes
             created_at,
             updated_at"#,
         user.id,                // $1
-        params.name,            // $2
-        params.slug,            // $3
-        params.description,     // $4
+        name,                   // $2
+        slug,                   // $3
+        description,            // $4
         params.visibility as _, // $5
     )
     .fetch_one(db_pool)
@@ -192,4 +200,67 @@ pub async fn paginate_boards<'a>(
         },
     )
     .await
+}
+
+async fn remove_board_cache(board: &Board<'_>) {
+    let slug = board.slug.to_lowercase();
+
+    tokio::join!(
+        GET_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
+        GET_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
+    );
+}
+
+pub async fn update_board<'a>(user: &User, board: &Board<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
+    params.validate()?;
+
+    let mut validation_errors = ValidationErrors::new();
+
+    if user.id != board.id {
+        return Err(validation_errors);
+    }
+
+    let name = params.name.trim();
+    let slug = params.slug.trim().to_lowercase();
+    let description = params.description.trim();
+
+    if board_name_exists(user, Some(board), name).await {
+        validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
+    }
+
+    if board_slug_exists(Some(board), &slug).await {
+        validation_errors.add("slug", ERROR_ALREADY_EXISTS.clone());
+    }
+
+    if !validation_errors.is_empty() {
+        return Err(validation_errors);
+    }
+
+    let db_pool = db_pool().await;
+
+    let board = sqlx::query_as!(
+        Board,
+        r#"UPDATE boards SET name = $2, slug = $3, description = $4, visibility = $5 WHERE id = $1
+        RETURNING
+            id,
+            user_id,
+            name,
+            slug,
+            description,
+            visibility AS "visibility!: BoardVisibility",
+            created_at,
+            updated_at"#,
+        board.id,               // $1
+        name,                   // $2
+        slug,                   // $3
+        description,            // $4
+        params.visibility as _, // $5
+    )
+    .fetch_one(db_pool)
+    .await
+    .or_validation_errors()?;
+
+    remove_board_cache(&board).await;
+
+    Ok(board)
 }
