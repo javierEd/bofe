@@ -19,8 +19,8 @@ pub mod models;
 pub mod params;
 
 use config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use jobs::NewUserJob;
-use models::User;
+use jobs::{NewSessionJob, NewUserJob};
+use models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
@@ -48,12 +48,14 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
 }
 
 pub struct JobsStorage {
+    pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
 }
 
 impl JobsStorage {
     async fn new() -> Self {
         Self {
+            new_session: Self::storage().await,
             new_user: Self::storage().await,
         }
     }
@@ -64,6 +66,14 @@ impl JobsStorage {
             .expect("Could not connect to Redis Jobs DB");
 
         RedisStorage::new(conn)
+    }
+
+    pub(crate) async fn push_new_session(&self, session: &Session<'_>) {
+        self.new_session
+            .clone()
+            .push(NewSessionJob { session_id: session.id })
+            .await
+            .expect("Could not store job");
     }
 
     pub(crate) async fn push_new_user(&self, user: &User<'_>) {

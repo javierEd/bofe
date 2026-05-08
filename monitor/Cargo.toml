@@ -9,8 +9,12 @@ repository.workspace = true
 [dependencies]
 anyhow = "1.0.102"
 apalis = { workspace = true, features = ["sentry"] }
+envconfig.workspace = true
+reqwest = "0.13.3"
 sentry = { workspace = true, features = ["tower"] }
+serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+url.workspace = true
 boards-core.workspace = true
 toolbox = { workspace = true, features = ["mailer"] }

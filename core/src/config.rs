@@ -11,6 +11,7 @@ pub(crate) static APPLICATION_CONFIG: LazyLock<ApplicationConfig> =
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
+pub(crate) static SESSION_CONFIG: LazyLock<SessionConfig> = LazyLock::new(|| SessionConfig::init_from_env().unwrap());
 pub(crate) static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 
 #[derive(Envconfig)]
@@ -48,6 +49,26 @@ pub(crate) struct DatabaseConfig {
 pub(crate) struct MonitorConfig {
     #[envconfig(from = "MONITOR_REDIS_URL", default = "redis://127.0.0.1:6379/1")]
     pub redis_url: String,
+}
+
+#[derive(Envconfig)]
+pub(crate) struct SessionConfig {
+    #[envconfig(from = "SESSION_TOKEN_MIN_LENGTH", default = "64")]
+    token_min_length: u8,
+    #[envconfig(from = "SESSION_TOKEN_MAX_LENGTH", default = "128")]
+    token_max_length: u8,
+    #[envconfig(from = "SESSION_TTL_SECS", default = "2592000")]
+    ttl_secs: u64,
+}
+
+impl SessionConfig {
+    pub fn token_length(&self) -> RangeInclusive<u8> {
+        self.token_min_length..=self.token_max_length
+    }
+
+    pub fn ttl(&self) -> Duration {
+        Duration::from_secs(self.ttl_secs)
+    }
 }
 
 #[derive(Envconfig)]

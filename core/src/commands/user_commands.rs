@@ -13,6 +13,16 @@ use crate::{db_pool, jobs_storage};
 
 use super::encrypt_password;
 
+pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
+    let user = get_user_by_username_or_email(username_or_email).await?;
+
+    if user.verify_password(password) {
+        Ok(user)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, User>",
@@ -47,6 +57,30 @@ pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'s
         User,
         "SELECT * FROM users WHERE disabled_at IS NULL AND LOWER(username) = LOWER($1) LIMIT 1",
         username
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ username_or_email.to_lowercase() }"#,
+    ty = "AsyncRedisCache<String, User<'_>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_USERNAME_OR_EMAIL).await }"##
+)]
+async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<User<'static>> {
+    if username_or_email.is_empty() {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        User,
+        "SELECT * FROM users
+        WHERE disabled_at IS NULL AND (LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1))
+        LIMIT 1",
+        username_or_email
     )
     .fetch_one(db_pool)
     .await
