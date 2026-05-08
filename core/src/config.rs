@@ -1,13 +1,37 @@
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use envconfig::Envconfig;
 use url::Url;
 
+pub(crate) static APPLICATION_CONFIG: LazyLock<ApplicationConfig> =
+    LazyLock::new(|| ApplicationConfig::init_from_env().unwrap());
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
 pub(crate) static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
+
+#[derive(Envconfig)]
+pub(crate) struct ApplicationConfig {
+    #[envconfig(from = "APPLICATION_TOKEN_MIN_LENGTH", default = "64")]
+    token_min_length: u8,
+    #[envconfig(from = "APPLICATION_TOKEN_MAX_LENGTH", default = "128")]
+    token_max_length: u8,
+    #[envconfig(from = "APPLICATION_TTL_SECS", default = "31104000")]
+    ttl_secs: u64,
+}
+
+impl ApplicationConfig {
+    pub fn token_length(&self) -> RangeInclusive<u8> {
+        self.token_min_length..=self.token_max_length
+    }
+
+    pub fn ttl(&self) -> Duration {
+        Duration::from_secs(self.ttl_secs)
+    }
+}
 
 #[derive(Envconfig)]
 pub(crate) struct DatabaseConfig {

@@ -34,6 +34,14 @@ fn validate_email(value: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+fn validate_expires_at(value: &NaiveDate) -> Result<(), ValidationError> {
+    if *value <= Utc::now().date_naive() {
+        return Err(ERROR_IS_INVALID.clone());
+    }
+
+    Ok(())
+}
+
 fn validate_slug(value: &str) -> Result<(), ValidationError> {
     if Uuid::try_parse(value).is_ok() {
         return Err(ValidationError::new("Is invalid"));
@@ -54,9 +62,17 @@ fn validate_username(value: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+#[derive(Validate)]
+pub struct ApplicationParams {
+    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    pub name: String,
+    #[validate(custom(function = "validate_expires_at"))]
+    pub expires_at: Option<NaiveDate>,
+}
+
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
-pub struct BoardParams {
+pub(crate) struct BoardParams {
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
     pub name: String,
     #[validate(
@@ -71,7 +87,7 @@ pub struct BoardParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
-pub struct CardParams {
+pub(crate) struct CardParams {
     pub list_id: Uuid,
     #[validate(length(min = 1, max = 1024, message = "Can't be blank"))]
     pub content: String,
@@ -79,7 +95,7 @@ pub struct CardParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
-pub struct ListParams {
+pub(crate) struct ListParams {
     pub board_id: Uuid,
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
     pub name: String,
@@ -87,14 +103,14 @@ pub struct ListParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
-pub struct UpdateListParams {
+pub(crate) struct UpdateListParams {
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
     pub name: String,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
-pub struct UserParams {
+pub(crate) struct UserParams {
     #[validate(
         length(min = 3, max = 16, message = "Must have at least 3 characters"),
         regex(path = *REGEX_USERNAME, message = "Is invalid"),

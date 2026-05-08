@@ -767,6 +767,7 @@ name = "boards-cli"
 version = "0.0.0-alpha.0"
 dependencies = [
  "boards-core",
+ "chrono",
  "clap",
  "tokio",
 ]

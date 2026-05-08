@@ -9,7 +9,6 @@ use tokio::sync::OnceCell;
 mod config;
 mod constants;
 mod enums;
-mod params;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;
@@ -17,6 +16,7 @@ pub mod graphql;
 pub mod commands;
 pub mod jobs;
 pub mod models;
+pub mod params;
 
 use config::{DATABASE_CONFIG, MONITOR_CONFIG};
 use jobs::NewUserJob;

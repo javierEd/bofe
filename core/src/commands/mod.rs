@@ -3,11 +3,13 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHasher};
 use bytesize::ByteSize;
 
+mod application_commands;
 mod board_commands;
 mod card_commands;
 mod list_commands;
 mod user_commands;
 
+pub use application_commands::*;
 pub(crate) use board_commands::*;
 pub(crate) use card_commands::*;
 pub(crate) use list_commands::*;
