@@ -43,6 +43,22 @@ async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
     .is_ok()
 }
 
+pub async fn delete_board(user: &User, board: &Board<'_>) -> sqlx::Result<bool> {
+    if user.id != board.user_id {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query!("DELETE FROM boards WHERE id = $1", board.id)
+        .execute(db_pool)
+        .await?;
+
+    remove_board_cache(board).await;
+
+    Ok(true)
+}
+
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Board<'_>>",
