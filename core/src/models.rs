@@ -47,6 +47,7 @@ impl Board<'_> {
 pub struct Card<'a> {
     pub id: Uuid,
     pub list_id: Uuid,
+    pub user_id: Uuid,
     pub content: Cow<'a, str>,
     pub position: i16,
     pub created_at: DateTime<Utc>,
@@ -54,6 +55,10 @@ pub struct Card<'a> {
 }
 
 impl Card<'_> {
+    pub fn is_editable(&self, user: Option<&User>) -> bool {
+        Some(self.user_id) == user.map(|u| u.id)
+    }
+
     pub async fn list(&self) -> sqlx::Result<List<'_>> {
         commands::get_list_by_id(self.list_id).await
     }
@@ -62,6 +67,7 @@ impl Card<'_> {
 pub struct List<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
+    pub user_id: Uuid,
     pub name: Cow<'a, str>,
     pub position: i16,
     pub created_at: DateTime<Utc>,
@@ -73,7 +79,15 @@ impl List<'_> {
         commands::get_board_by_id(self.board_id).await
     }
 
+    pub fn is_editable(&self, user: Option<&User>) -> bool {
+        Some(self.user_id) == user.map(|u| u.id)
+    }
+
     pub async fn is_visible(&self, target_user: Option<&User>) -> sqlx::Result<bool> {
+        if self.is_editable(target_user) {
+            return Ok(true);
+        }
+
         let board = self.board().await?;
 
         Ok(Some(board.user_id) == target_user.map(|u| u.id)

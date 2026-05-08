@@ -44,7 +44,7 @@ async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
 }
 
 pub async fn delete_board(user: &User, board: &Board<'_>) -> sqlx::Result<bool> {
-    if user.id != board.user_id {
+    if !board.is_editable(Some(user)) {
         return Err(sqlx::Error::RowNotFound);
     }
 
@@ -232,7 +232,7 @@ pub async fn update_board<'a>(user: &User, board: &Board<'_>, params: BoardParam
 
     let mut validation_errors = ValidationErrors::new();
 
-    if user.id != board.id {
+    if !board.is_editable(Some(user)) {
         return Err(validation_errors);
     }
 
