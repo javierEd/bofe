@@ -10,7 +10,7 @@ homepage = "https://boards.mango3.app"
 repository = "https://github.com/mangocubed/boards"
 
 [workspace.dependencies]
-apalis = "1.0.0-rc.7"
+apalis = "1.0.0-rc.9"
 async-graphql = "8.0.0-rc.5"
 chrono = { version = "0.4.44", features = ["serde"] }
 envconfig = "0.11.1"
