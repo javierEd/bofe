@@ -19,6 +19,9 @@ Kanban style lists.
 | API_ADDRESS                  | String  | 127.0.0.1:8005                                     | api             |
 | API_CLIENT_IP_SOURCE         | String  | ConnectInfo                                        | api             |
 | API_SERVE_STORAGE            | Boolean | true                                               | api             |
+| APPLICATION_TOKEN_MIN_LENGTH | Number  | 64                                                 | api             |
+| APPLICATION_TOKEN_MAX_LENGTH | Number  | 128                                                | api             |
+| APPLICATION_TTL_SECS         | Number  | 31104000                                           | api             |
 | CACHE_REDIS_URL              | String  | redis://127.0.0.1:6379/0                           | api,monitor     |
 | CACHE_TTL_SECS               | Number  | 3600                                               | api,monitor     |
 | DATABASE_MAX_CONNECTIONS     | Number  | 5                                                  | api,monitor     |
@@ -31,6 +34,9 @@ Kanban style lists.
 | MAILER_SMTP_USERNAME         | String  |                                                    | monitor         |
 | MAILER_SUPPORT_EMAIL_ADDRESS | String  | support@localhost                                  | monitor         |
 | MONITOR_REDIS_URL            | String  | redis://127.0.0.1:6379/1                           | api,cli,monitor |
+| SESSION_TTL_SECS             | Number  | 2592000                                            | api             |
+| SESSION_TOKEN_MIN_LENGTH     | Number  | 64                                                 | api             |
+| SESSION_TOKEN_MAX_LENGTH     | Number  | 128                                                | api             |
 | STORAGE_PATH                 | String  | ./storage/                                         | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                     | api             |
 

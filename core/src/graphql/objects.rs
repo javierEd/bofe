@@ -9,7 +9,7 @@ use crate::Info;
 use crate::commands;
 use crate::enums::BoardVisibility;
 use crate::graphql::CustomContext;
-use crate::models::{Board, Card, List, User};
+use crate::models::{Board, Card, List, Session, User};
 
 pub struct BoardObject<'a>(pub Board<'a>);
 
@@ -164,6 +164,31 @@ impl ListObject<'_> {
             },
         )
         .await
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct SessionObject<'a>(pub Session<'a>);
+
+#[Object]
+impl SessionObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn token(&self) -> &str {
+        &self.0.token
+    }
+
+    async fn expires_at(&self) -> DateTime<Utc> {
+        self.0.expires_at
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

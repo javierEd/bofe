@@ -6,8 +6,8 @@ use validator::ValidationErrors;
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::{GuestGuard, UserGuard};
-use crate::graphql::objects::{BoardObject, CardObject, ListObject, UserObject};
-use crate::params::{BoardParams, CardParams, ListParams, UpdateListParams, UserParams};
+use crate::graphql::objects::{BoardObject, CardObject, ListObject, SessionObject, UserObject};
+use crate::params::{BoardParams, CardParams, ListParams, SessionParams, UpdateListParams, UserParams};
 
 pub struct MutationRoot;
 
@@ -60,6 +60,17 @@ impl MutationRoot {
             .await
             .map(ListObject)
             .map_err(|errors| to_mutation_error("Failed to create list", errors))
+    }
+
+    #[graphql(guard = "GuestGuard")]
+    async fn create_session(&self, ctx: &Context<'_>, params: SessionParams) -> Result<SessionObject<'_>> {
+        let application = ctx.application();
+        let ip_address = ctx.client_ip();
+
+        commands::insert_session(application, ip_address, params)
+            .await
+            .map(SessionObject)
+            .map_err(|errors| to_mutation_error("Failed to create session", errors))
     }
 
     #[graphql(guard = "GuestGuard")]

@@ -110,6 +110,15 @@ pub(crate) struct UpdateListParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub(crate) struct SessionParams {
+    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    pub username_or_email: String,
+    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    pub password: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub(crate) struct UserParams {
     #[validate(
         length(min = 3, max = 16, message = "Must have at least 3 characters"),

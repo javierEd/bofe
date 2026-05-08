@@ -13,6 +13,7 @@ use boards_core::jobs_storage;
 
 mod config;
 mod handlers;
+mod ip_geo;
 mod mailer;
 
 #[tokio::main]
@@ -26,6 +27,16 @@ async fn main() {
 
     let jobs_storage = jobs_storage().await;
 
+    let new_session_worker = |index| {
+        WorkerBuilder::new(format!("new-session-{index}"))
+            .backend(jobs_storage.new_session.clone())
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryLayer::new())
+            .enable_tracing()
+            .concurrency(1)
+            .build(handlers::new_session)
+    };
+
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
@@ -37,6 +48,7 @@ async fn main() {
     };
 
     Monitor::new()
+        .register(new_session_worker)
         .register(new_user_worker)
         .shutdown_timeout(Duration::from_millis(10000))
         .run_with_signal(async {

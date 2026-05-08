@@ -3,6 +3,7 @@ CREATE TABLE applications (
     name citext NOT NULL,
     token citext NOT NULL,
     expires_at timestamptz NOT NULL DEFAULT current_timestamp + interval '1 year',
+    disabled_at timestamptz NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp,
     updated_at timestamptz NULL,
     CONSTRAINT pkey_applications PRIMARY KEY (id)
