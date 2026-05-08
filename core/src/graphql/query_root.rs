@@ -53,7 +53,7 @@ impl QueryRoot {
         .await
     }
 
-    async fn current_user(&self, ctx: &Context<'_>) -> Option<UserObject> {
+    async fn current_user<'a>(&self, ctx: &'a Context<'_>) -> Option<UserObject<'a>> {
         ctx.user_opt().map(|user| UserObject(user.clone()))
     }
 
@@ -74,14 +74,7 @@ impl QueryRoot {
         }
     }
 
-    async fn user(&self, ctx: &Context<'_>, username: String) -> Option<UserObject> {
-        let identity_user = commands::get_identity_user(ctx.identity_client(), &username)
-            .await
-            .ok()?;
-
-        commands::get_user_by_identity_user(&identity_user)
-            .await
-            .map(UserObject)
-            .ok()
+    async fn user(&self, username: String) -> Option<UserObject<'_>> {
+        commands::get_user_by_username(&username).await.map(UserObject).ok()
     }
 }

@@ -26,6 +26,4 @@ tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 uuid = "1.23.1"
 boards-core = { path = "./core", default-features = false }
-toolbox = { git = "https://github.com/mangocubed/toolbox.git", features = [
-    "identity-client",
-], rev = "044f6b8" }
+toolbox = { git = "https://github.com/mangocubed/toolbox.git", rev = "044f6b8" }

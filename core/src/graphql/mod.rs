@@ -1,7 +1,5 @@
 use async_graphql::{Context, EmptySubscription, Schema, SchemaBuilder};
 
-use toolbox::identity_client::IdentityClient;
-
 use crate::models::User;
 
 mod guards;
@@ -25,23 +23,17 @@ impl GraphqlSchemaExt for GraphqlSchema {
 }
 
 trait CustomContext {
-    fn identity_client(&self) -> &IdentityClient;
+    fn user(&self) -> &User<'_>;
 
-    fn user(&self) -> &User;
-
-    fn user_opt(&self) -> Option<&User>;
+    fn user_opt(&self) -> Option<&User<'_>>;
 }
 
 impl CustomContext for Context<'_> {
-    fn identity_client(&self) -> &IdentityClient {
-        self.data_unchecked::<IdentityClient>()
+    fn user(&self) -> &User<'_> {
+        self.data_unchecked::<User<'_>>()
     }
 
-    fn user(&self) -> &User {
-        self.data_unchecked::<User>()
-    }
-
-    fn user_opt(&self) -> Option<&User> {
-        self.data_opt::<User>()
+    fn user_opt(&self) -> Option<&User<'_>> {
+        self.data_opt::<User<'_>>()
     }
 }

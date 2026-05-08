@@ -23,7 +23,7 @@ pub async fn get_card_by_id<'a>(id: Uuid) -> sqlx::Result<Card<'a>> {
     .await
 }
 
-pub async fn insert_card<'a>(user: &User, params: CardParams) -> ValidationResult<Card<'a>> {
+pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();
@@ -94,7 +94,7 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'a>) ->
 }
 
 pub async fn update_card_list<'a>(
-    user: &User,
+    user: &User<'_>,
     card: &Card<'_>,
     new_list: &List<'_>,
     position: i16,
@@ -151,7 +151,7 @@ pub async fn update_card_list<'a>(
     Ok(updated_card)
 }
 
-pub async fn update_card_position<'a>(user: &User, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
+pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
     let list = card.list().await.or_validation_errors()?;
 
     if !list.is_editable(Some(user)) || position < 0 || position == card.position {
