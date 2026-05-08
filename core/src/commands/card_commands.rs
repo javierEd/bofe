@@ -29,9 +29,8 @@ pub async fn insert_card<'a>(user: &User, params: CardParams) -> ValidationResul
     let mut validation_errors = ValidationErrors::new();
 
     let list = get_list_by_id(params.list_id).await.or_validation_errors()?;
-    let board = list.board().await.or_validation_errors()?;
 
-    if board.user_id != user.id {
+    if !list.is_editable(Some(user)) {
         validation_errors.add("list_id", ERROR_IS_INVALID.clone());
 
         return Err(validation_errors);
@@ -43,10 +42,11 @@ pub async fn insert_card<'a>(user: &User, params: CardParams) -> ValidationResul
 
     sqlx::query_as!(
         Card,
-        "INSERT INTO cards (list_id, content, position) VALUES ($1, $2, $3) RETURNING *",
+        "INSERT INTO cards (list_id, user_id, content, position) VALUES ($1, $2, $3, $4) RETURNING *",
         list.id,        // $1
-        params.content, // $2
-        position,       // $3
+        user.id,        // $2
+        params.content, // $3
+        position,       // $4
     )
     .fetch_one(db_pool)
     .await
@@ -100,9 +100,13 @@ pub async fn update_card_list<'a>(
     position: i16,
 ) -> ValidationResult<Card<'a>> {
     let list = card.list().await.or_validation_errors()?;
-    let board = list.board().await.or_validation_errors()?;
 
-    if board.user_id != user.id || board.id != new_list.board_id || list.id == new_list.id || position < 0 {
+    if !list.is_editable(Some(user))
+        || !new_list.is_editable(Some(user))
+        || list.board_id != new_list.board_id
+        || list.id == new_list.id
+        || position < 0
+    {
         return Err(ValidationErrors::new());
     }
 
@@ -149,9 +153,8 @@ pub async fn update_card_list<'a>(
 
 pub async fn update_card_position<'a>(user: &User, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
     let list = card.list().await.or_validation_errors()?;
-    let board = list.board().await.or_validation_errors()?;
 
-    if board.user_id != user.id || position < 0 || position == card.position {
+    if !list.is_editable(Some(user)) || position < 0 || position == card.position {
         return Err(ValidationErrors::new());
     }
 

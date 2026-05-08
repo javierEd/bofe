@@ -11,13 +11,15 @@ use crate::params::ListParams;
 
 use super::get_board_by_id;
 
-async fn list_name_exists(board: &Board<'_>, name: &str) -> bool {
+async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
+    let list_id = list.map(|l| l.id);
 
     sqlx::query!(
-        "SELECT id FROM lists WHERE board_id = $1 AND LOWER(name) = $2 LIMIT 1",
+        "SELECT id FROM lists WHERE board_id = $1 AND id != $2 AND LOWER(name) = $3 LIMIT 1",
         board.id,            // $1
-        name.to_lowercase()  // $2
+        list_id,             // $2
+        name.to_lowercase()  // $3
     )
     .fetch_one(db_pool)
     .await
@@ -43,13 +45,15 @@ pub async fn insert_list<'a>(user: &User, params: ListParams) -> ValidationResul
 
     let board = get_board_by_id(params.board_id).await.or_validation_errors()?;
 
-    if board.user_id != user.id {
+    if !board.is_editable(Some(user)) {
         validation_errors.add("board_id", ERROR_IS_INVALID.clone());
 
         return Err(validation_errors);
     }
 
-    if list_name_exists(&board, &params.name).await {
+    let name = params.name.trim();
+
+    if list_name_exists(&board, None, name).await {
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
     }
 
@@ -63,10 +67,11 @@ pub async fn insert_list<'a>(user: &User, params: ListParams) -> ValidationResul
 
     sqlx::query_as!(
         List,
-        "INSERT INTO lists (board_id, name, position) VALUES ($1, $2, $3) RETURNING *",
-        board.id,    // $1
-        params.name, // $2
-        position,    // $3
+        "INSERT INTO lists (board_id, user_id, name, position) VALUES ($1, $2, $3, $4) RETURNING *",
+        board.id, // $1
+        user.id,  // $2
+        name,     // $3
+        position, // $4
     )
     .fetch_one(db_pool)
     .await
@@ -116,7 +121,7 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
 pub async fn update_list_position<'a>(user: &User, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
     let board = list.board().await.or_validation_errors()?;
 
-    if board.user_id != user.id || position < 0 || position == list.position {
+    if !board.is_editable(Some(user)) || position < 0 || position == list.position {
         return Err(ValidationErrors::new());
     }
 
