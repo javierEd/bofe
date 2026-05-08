@@ -3,7 +3,6 @@ use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use toolbox::graphql::objects::IdentityUserObject;
 use toolbox::pagination::CursorParams;
 
 use crate::Info;
@@ -20,7 +19,7 @@ impl BoardObject<'_> {
         self.0.id.into()
     }
 
-    async fn user(&self) -> Result<UserObject> {
+    async fn user(&self) -> Result<UserObject<'_>> {
         Ok(self.0.user().await.map(UserObject)?)
     }
 
@@ -176,20 +175,20 @@ impl ListObject<'_> {
     }
 }
 
-pub struct UserObject(pub User);
+pub struct UserObject<'a>(pub User<'a>);
 
 #[Object]
-impl UserObject {
+impl UserObject<'_> {
     async fn id(&self) -> ID {
         self.0.id.into()
     }
 
-    async fn identity_user(&self, ctx: &Context<'_>) -> Result<IdentityUserObject<'_>> {
-        Ok(self
-            .0
-            .identity_user(ctx.identity_client())
-            .await
-            .map(IdentityUserObject)?)
+    async fn username(&self) -> &str {
+        &self.0.username
+    }
+
+    async fn display_name(&self) -> &str {
+        &self.0.display_name
     }
 
     async fn boards(

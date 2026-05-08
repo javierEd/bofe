@@ -1,9 +1,6 @@
-use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::LazyLock;
-use std::time::Duration;
 
-use bytesize::ByteSize;
 use envconfig::Envconfig;
 use url::Url;
 
@@ -21,28 +18,6 @@ pub(crate) struct DatabaseConfig {
         default = "postgres://mango3:mango3@127.0.0.1:5432/boards_dev"
     )]
     pub url: String,
-}
-
-#[derive(Envconfig)]
-pub struct FileConfig {
-    #[envconfig(from = "FILE_TOKEN_MIN_LENGTH", default = "32")]
-    pub token_min_length: u8,
-    #[envconfig(from = "FILE_TOKEN_MAX_LENGTH", default = "64")]
-    pub token_max_length: u8,
-    #[envconfig(from = "FILE_TOKEN_TTL_SECS", default = "3600")]
-    token_ttl_secs: u64,
-    #[envconfig(from = "FILE_MAX_SIZE", default = "1073741824")]
-    pub max_size: ByteSize,
-}
-
-impl FileConfig {
-    pub fn token_length(&self) -> RangeInclusive<u8> {
-        self.token_min_length..=self.token_max_length
-    }
-
-    pub fn token_ttl(&self) -> Duration {
-        Duration::from_secs(self.token_ttl_secs)
-    }
 }
 
 #[derive(Envconfig)]

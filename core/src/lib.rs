@@ -6,8 +6,7 @@ use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
 
-use toolbox::identity_client::IdentityClient;
-
+mod config;
 mod constants;
 mod enums;
 mod params;
@@ -16,7 +15,6 @@ mod params;
 pub mod graphql;
 
 pub mod commands;
-pub mod config;
 pub mod jobs;
 pub mod models;
 
@@ -27,7 +25,10 @@ use models::User;
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
 
-#[allow(dead_code)]
+fn block_on<T>(f: impl Future<Output = T>) -> T {
+    tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
+}
+
 async fn db_pool<'a>() -> &'a PgPool {
     DB_POOL_CELL
         .get_or_init(|| async {
@@ -65,13 +66,10 @@ impl JobsStorage {
         RedisStorage::new(conn)
     }
 
-    pub(crate) async fn push_new_user(&self, identity_client: &IdentityClient, user: &User) {
+    pub(crate) async fn push_new_user(&self, user: &User<'_>) {
         self.new_user
             .clone()
-            .push(NewUserJob {
-                identity_client: identity_client.clone(),
-                user_id: user.id,
-            })
+            .push(NewUserJob { user_id: user.id })
             .await
             .expect("Could not store job");
     }

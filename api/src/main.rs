@@ -18,13 +18,11 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use toolbox::axum::OrHttpError;
 use toolbox::constants::RESPONSE_ERROR_UNAUTHORIZED;
-use toolbox::identity_client::IdentityClient;
 use toolbox::tracing::start_tracing_subscriber;
 
+use boards_core::Info;
 use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use boards_core::{Info, commands};
 
 use crate::config::API_CONFIG;
 
@@ -44,19 +42,9 @@ async fn post_graphql(
         return Err(RESPONSE_ERROR_UNAUTHORIZED.clone().into());
     };
 
-    let token = bearer.token().to_owned();
+    let _token = bearer.token().to_owned();
 
-    let identity_client = IdentityClient::new(&token);
-
-    identity_client.authorized().await.or_unauthorized()?;
-
-    let mut batch_request = batch_request.into_inner();
-
-    batch_request = batch_request.data(identity_client.clone()).data(client_ip);
-
-    if let Ok(user) = commands::get_or_insert_user(&identity_client).await {
-        batch_request = batch_request.data(user);
-    }
+    let batch_request = batch_request.into_inner().data(client_ip);
 
     Ok(schema.execute_batch(batch_request).await.into())
 }

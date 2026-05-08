@@ -1,17 +1,15 @@
 use std::borrow::Cow;
 use std::fmt::Display;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use toolbox::identity_client::{IdentityClient, IdentityUser};
 
 use crate::commands;
 use crate::enums::BoardVisibility;
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct Board<'a> {
+pub(crate) struct Board<'a> {
     pub id: Uuid,
     pub user_id: Uuid,
     pub name: Cow<'a, str>,
@@ -39,12 +37,12 @@ impl Board<'_> {
             || self.visibility == BoardVisibility::Public
     }
 
-    pub async fn user(&self) -> sqlx::Result<User> {
+    pub async fn user(&self) -> sqlx::Result<User<'_>> {
         commands::get_user_by_id(self.user_id).await
     }
 }
 
-pub struct Card<'a> {
+pub(crate) struct Card<'a> {
     pub id: Uuid,
     pub list_id: Uuid,
     pub user_id: Uuid,
@@ -55,6 +53,7 @@ pub struct Card<'a> {
 }
 
 impl Card<'_> {
+    #[allow(dead_code)]
     pub fn is_editable(&self, user: Option<&User>) -> bool {
         Some(self.user_id) == user.map(|u| u.id)
     }
@@ -64,7 +63,7 @@ impl Card<'_> {
     }
 }
 
-pub struct List<'a> {
+pub(crate) struct List<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
     pub user_id: Uuid,
@@ -83,7 +82,7 @@ impl List<'_> {
         Some(self.user_id) == user.map(|u| u.id)
     }
 
-    pub async fn is_visible(&self, target_user: Option<&User>) -> sqlx::Result<bool> {
+    pub async fn is_visible(&self, target_user: Option<&User<'_>>) -> sqlx::Result<bool> {
         if self.is_editable(target_user) {
             return Ok(true);
         }
@@ -97,22 +96,23 @@ impl List<'_> {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct User {
+pub struct User<'a> {
     pub id: Uuid,
-    pub identity_user_id: Uuid,
+    pub username: Cow<'a, str>,
+    pub email: Cow<'a, str>,
+    pub(crate) encrypted_password: Cow<'a, str>,
+    pub full_name: Cow<'a, str>,
+    pub display_name: Cow<'a, str>,
+    pub birthdate: NaiveDate,
+    pub language_code: Cow<'a, str>,
+    pub country_code: Cow<'a, str>,
     pub disabled_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl Display for User {
+impl Display for User<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.id)
-    }
-}
-
-impl User {
-    pub async fn identity_user(&self, client: &IdentityClient) -> anyhow::Result<IdentityUser<'_>> {
-        commands::get_identity_user(client, &self.identity_user_id.to_string()).await
     }
 }

@@ -14,7 +14,7 @@ use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
 use crate::params::BoardParams;
 
-async fn board_name_exists(user: &User, board: Option<&Board<'_>>, name: &str) -> bool {
+async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let board_id = board.map(|b| b.id);
 
@@ -43,7 +43,7 @@ async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
     .is_ok()
 }
 
-pub async fn delete_board(user: &User, board: &Board<'_>) -> sqlx::Result<bool> {
+pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bool> {
     if !board.is_editable(Some(user)) {
         return Err(sqlx::Error::RowNotFound);
     }
@@ -85,7 +85,7 @@ pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     .await
 }
 
-pub async fn get_board_by_id_or_slug<'a>(id_or_slug: &str, target_user: Option<&User>) -> sqlx::Result<Board<'a>> {
+pub async fn get_board_by_id_or_slug<'a>(id_or_slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
     let board = if let Ok(id) = Uuid::try_parse(id_or_slug) {
         get_board_by_id(id).await
     } else {
@@ -126,7 +126,7 @@ async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     .await
 }
 
-pub async fn insert_board<'a>(user: &User, params: BoardParams) -> ValidationResult<Board<'a>> {
+pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();
@@ -174,8 +174,8 @@ pub async fn insert_board<'a>(user: &User, params: BoardParams) -> ValidationRes
 
 pub async fn paginate_boards<'a>(
     cursor_params: CursorParams,
-    owner_user: Option<&User>,
-    target_user: Option<&User>,
+    owner_user: Option<&User<'_>>,
+    target_user: Option<&User<'_>>,
 ) -> CursorPage<Board<'a>> {
     let db_pool = db_pool().await;
 
@@ -227,7 +227,7 @@ async fn remove_board_cache(board: &Board<'_>) {
     );
 }
 
-pub async fn update_board<'a>(user: &User, board: &Board<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
+pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();

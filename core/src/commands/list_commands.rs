@@ -38,7 +38,7 @@ pub async fn get_list_by_id<'a>(id: Uuid) -> sqlx::Result<List<'a>> {
     .await
 }
 
-pub async fn insert_list<'a>(user: &User, params: ListParams) -> ValidationResult<List<'a>> {
+pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();
@@ -118,7 +118,7 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
     .await
 }
 
-pub async fn update_list<'a>(user: &User, list: &List<'_>, params: UpdateListParams) -> ValidationResult<List<'a>> {
+pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();
@@ -152,7 +152,7 @@ pub async fn update_list<'a>(user: &User, list: &List<'_>, params: UpdateListPar
     .or_validation_errors()
 }
 
-pub async fn update_list_position<'a>(user: &User, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
+pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
     let board = list.board().await.or_validation_errors()?;
 
     if !board.is_editable(Some(user)) || position < 0 || position == list.position {
