@@ -8,6 +8,21 @@ use uuid::Uuid;
 use crate::commands;
 use crate::enums::BoardVisibility;
 
+pub struct Application<'a> {
+    pub id: Uuid,
+    pub name: Cow<'a, str>,
+    pub token: Cow<'a, str>,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for Application<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct Board<'a> {
     pub id: Uuid,
