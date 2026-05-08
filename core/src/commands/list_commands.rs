@@ -7,7 +7,7 @@ use toolbox::validator::{OrValidationErrors, ValidationResult};
 
 use crate::db_pool;
 use crate::models::{Board, List, User};
-use crate::params::ListParams;
+use crate::params::{ListParams, UpdateListParams};
 
 use super::get_board_by_id;
 
@@ -116,6 +116,40 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
         },
     )
     .await
+}
+
+pub async fn update_list<'a>(user: &User, list: &List<'_>, params: UpdateListParams) -> ValidationResult<List<'a>> {
+    params.validate()?;
+
+    let mut validation_errors = ValidationErrors::new();
+
+    if !list.is_editable(Some(user)) {
+        return Err(validation_errors);
+    }
+
+    let name = params.name.trim();
+
+    let board = list.board().await.or_validation_errors()?;
+
+    if list_name_exists(&board, Some(list), name).await {
+        validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
+    }
+
+    if !validation_errors.is_empty() {
+        return Err(validation_errors);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        List,
+        "UPDATE lists SET name = $2 WHERE id = $1 RETURNING *",
+        list.id, // $1
+        name,    // $2
+    )
+    .fetch_one(db_pool)
+    .await
+    .or_validation_errors()
 }
 
 pub async fn update_list_position<'a>(user: &User, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {

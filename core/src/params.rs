@@ -42,3 +42,10 @@ pub struct ListParams {
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
     pub name: String,
 }
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
+pub struct UpdateListParams {
+    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    pub name: String,
+}
