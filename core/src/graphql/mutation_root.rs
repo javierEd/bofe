@@ -63,6 +63,16 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn delete_board(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        let user = ctx.user();
+        let board = commands::get_board_by_id(id).await?;
+
+        commands::delete_board(user, &board)
+            .await
+            .map_err(|_| to_mutation_error("Failed to delete board", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_board(&self, ctx: &Context<'_>, id: Uuid, params: BoardParams) -> Result<BoardObject<'_>> {
         let user = ctx.user();
         let board = commands::get_board_by_id(id).await?;
