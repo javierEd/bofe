@@ -11,7 +11,7 @@ use toolbox::rand::random_string;
 use toolbox::validator::{OrValidationErrors, ValidationResult};
 
 use crate::config::SESSION_CONFIG;
-use crate::constants::CACHE_PREFIX_GET_SESSION_BY_ID;
+use crate::constants::{CACHE_PREFIX_GET_SESSION_BY_ID, CACHE_PREFIX_GET_SESSION_BY_TOKEN};
 use crate::models::{Application, Session};
 use crate::params::SessionParams;
 use crate::{db_pool, jobs_storage};
@@ -30,6 +30,23 @@ pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
         Session,
         "SELECT * FROM sessions WHERE expires_at > current_timestamp AND finished_at IS NULL AND id = $1 LIMIT 1",
         id
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<&str, Session>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_SESSION_BY_TOKEN).await }"##
+)]
+pub async fn get_session_by_token(token: &str) -> sqlx::Result<Session<'static>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Session,
+        "SELECT * FROM sessions WHERE token = $1 AND expires_at > current_timestamp AND finished_at IS NULL LIMIT 1",
+        token
     )
     .fetch_one(db_pool)
     .await

@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use async_graphql::{Context, EmptySubscription, Schema, SchemaBuilder};
 
-use crate::models::{Application, User};
+use crate::models::{Application, Session, User};
 
 mod guards;
 mod mutation_root;
@@ -28,6 +28,12 @@ trait CustomContext {
     fn application(&self) -> &Application<'_>;
 
     fn client_ip(&self) -> &IpAddr;
+
+    #[allow(dead_code)]
+    fn session(&self) -> &Session<'_>;
+
+    #[allow(dead_code)]
+    fn session_opt(&self) -> Option<&Session<'_>>;
     fn user(&self) -> &User<'_>;
 
     fn user_opt(&self) -> Option<&User<'_>>;
@@ -40,6 +46,14 @@ impl CustomContext for Context<'_> {
 
     fn client_ip(&self) -> &IpAddr {
         self.data_unchecked::<IpAddr>()
+    }
+
+    fn session(&self) -> &Session<'_> {
+        self.data_unchecked::<Session<'_>>()
+    }
+
+    fn session_opt(&self) -> Option<&Session<'_>> {
+        self.data_opt::<Session<'_>>()
     }
 
     fn user(&self) -> &User<'_> {

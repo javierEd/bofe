@@ -49,10 +49,15 @@ async fn post_graphql(
 
     let application = commands::get_application_by_token(app_token).await.or_forbidden()?;
 
-    let batch_request = batch_request.into_inner().data(client_ip).data(application);
+    let mut batch_request = batch_request.into_inner().data(client_ip).data(application);
 
     if let Some(TypedHeader(Authorization(bearer))) = authorization {
-        let _token = bearer.token().to_owned();
+        let token = bearer.token().to_owned();
+
+        let session = commands::get_session_by_token(&token).await.or_unauthorized()?;
+        let user = session.user().await.or_internal_server_error()?;
+
+        batch_request = batch_request.data(session).data(user);
     }
 
     Ok(schema.execute_batch(batch_request).await.into())
