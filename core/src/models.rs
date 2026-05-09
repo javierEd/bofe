@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::commands;
 use crate::enums::BoardVisibility;
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Application<'a> {
     pub id: Uuid,
     pub name: Cow<'a, str>,
