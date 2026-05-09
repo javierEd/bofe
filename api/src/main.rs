@@ -5,7 +5,7 @@ use async_graphql::extensions::{ApolloTracing, Logger};
 use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{Method, Request};
+use axum::http::{HeaderMap, HeaderName, Method, Request};
 use axum::response::{IntoResponse, Result};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -18,33 +18,42 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use toolbox::constants::RESPONSE_ERROR_UNAUTHORIZED;
+use toolbox::axum::OrHttpError;
 use toolbox::tracing::start_tracing_subscriber;
 
-use boards_core::Info;
 use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use boards_core::{Info, commands};
 
 use crate::config::API_CONFIG;
 
 mod config;
+
+pub const HEADER_X_APP_TOKEN: HeaderName = HeaderName::from_static("x-app-token");
 
 async fn get_index() -> impl IntoResponse {
     Json(Info::default())
 }
 
 async fn post_graphql(
+    headers: HeaderMap,
     State(schema): State<GraphqlSchema>,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     ClientIp(client_ip): ClientIp,
     batch_request: GraphQLBatchRequest,
 ) -> Result<GraphQLResponse> {
-    let Some(TypedHeader(Authorization(bearer))) = authorization else {
-        return Err(RESPONSE_ERROR_UNAUTHORIZED.clone().into());
-    };
+    let app_token = headers
+        .get(HEADER_X_APP_TOKEN)
+        .or_forbidden()?
+        .to_str()
+        .or_forbidden()?;
 
-    let _token = bearer.token().to_owned();
+    let application = commands::get_application_by_token(app_token).await.or_forbidden()?;
 
-    let batch_request = batch_request.into_inner().data(client_ip);
+    let batch_request = batch_request.into_inner().data(client_ip).data(application);
+
+    if let Some(TypedHeader(Authorization(bearer))) = authorization {
+        let _token = bearer.token().to_owned();
+    }
 
     Ok(schema.execute_batch(batch_request).await.into())
 }

@@ -1,13 +1,35 @@
+use cached::AsyncRedisCache;
+use cached::proc_macro::io_cached;
 use chrono::Utc;
 use validator::Validate;
 
+use toolbox::cache::redis_cache_store;
 use toolbox::rand::random_string;
 use toolbox::validator::{OrValidationErrors, ValidationResult};
 
 use crate::config::APPLICATION_CONFIG;
+use crate::constants::CACHE_PREFIX_GET_APPLICATION_BY_TOKEN;
 use crate::db_pool;
 use crate::models::Application;
 use crate::params::ApplicationParams;
+
+#[io_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    ty = "AsyncRedisCache<&str, Application<'_>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_APPLICATION_BY_TOKEN).await }"##
+)]
+pub async fn get_application_by_token(token: &str) -> sqlx::Result<Application<'static>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Application,
+        "SELECT * FROM applications WHERE token = $1 AND expires_at > current_timestamp AND disabled_at IS NULL
+        LIMIT 1",
+        token
+    )
+    .fetch_one(db_pool)
+    .await
+}
 
 pub async fn insert_application<'a>(params: ApplicationParams) -> ValidationResult<Application<'a>> {
     params.validate()?;
