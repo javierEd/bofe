@@ -15,7 +15,8 @@ use crate::params::ApplicationParams;
 
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
-    ty = "AsyncRedisCache<&str, Application<'_>>",
+    convert = r#"{ token.to_string() }"#,
+    ty = "AsyncRedisCache<String, Application<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_APPLICATION_BY_TOKEN).await }"##
 )]
 pub async fn get_application_by_token(token: &str) -> sqlx::Result<Application<'static>> {
