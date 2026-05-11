@@ -30,7 +30,6 @@ trait CustomContext {
 
     fn client_ip(&self) -> &IpAddr;
 
-    #[allow(dead_code)]
     fn session(&self) -> &Session<'_>;
 
     #[allow(dead_code)]
