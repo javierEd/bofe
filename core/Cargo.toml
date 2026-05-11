@@ -48,4 +48,4 @@ validator = { version = "0.20.0", features = ["derive"] }
 toolbox = { workspace = true, features = ["pagination", "rand", "validator"] }
 
 [features]
-graphql = ["dep:async-graphql", "toolbox/graphql"]
+graphql = ["dep:async-graphql"]
