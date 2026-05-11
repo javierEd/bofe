@@ -829,6 +829,7 @@ dependencies = [
  "apalis",
  "boards-core",
  "envconfig",
+ "lettre",
  "reqwest",
  "sentry",
  "serde",
@@ -4700,11 +4701,9 @@ name = "toolbox"
 version = "0.0.0-alpha.0"
 source = "git+https://github.com/mangocubed/toolbox.git?rev=044f6b8#044f6b8910f886aa407ba8aa763a15f9a15e18d5"
 dependencies = [
- "anyhow",
  "async-graphql",
  "cached",
  "envconfig",
- "lettre",
  "rand 0.10.1",
  "sentry",
  "serde",
