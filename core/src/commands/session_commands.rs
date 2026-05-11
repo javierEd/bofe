@@ -18,6 +18,22 @@ use crate::{db_pool, jobs_storage};
 
 use super::authenticate_user;
 
+pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> {
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "UPDATE sessions SET finished_at = current_timestamp
+        WHERE id = $1 AND finished_at IS NULL AND expires_at > current_timestamp",
+        session.id, // $1
+    )
+    .execute(db_pool)
+    .await?;
+
+    remove_session_cache(session).await;
+
+    Ok(true)
+}
+
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Session>",
@@ -37,7 +53,8 @@ pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
 
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
-    ty = "AsyncRedisCache<&str, Session>",
+    convert = r#"{ token.to_string() }"#,
+    ty = "AsyncRedisCache<String, Session>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_SESSION_BY_TOKEN).await }"##
 )]
 pub async fn get_session_by_token(token: &str) -> sqlx::Result<Session<'static>> {
@@ -88,9 +105,12 @@ pub(crate) async fn insert_session<'a>(
 }
 
 async fn remove_session_cache(session: &Session<'_>) {
-    GET_SESSION_BY_ID
-        .cache_remove(CACHE_PREFIX_GET_SESSION_BY_ID, &session.id)
-        .await;
+    let token = session.token.to_string();
+
+    tokio::join!(
+        GET_SESSION_BY_ID.cache_remove(CACHE_PREFIX_GET_SESSION_BY_ID, &session.id),
+        GET_SESSION_BY_TOKEN.cache_remove(CACHE_PREFIX_GET_SESSION_BY_TOKEN, &token),
+    );
 }
 
 pub async fn update_session_location<'a>(

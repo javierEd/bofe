@@ -92,6 +92,15 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn finish_session(&self, ctx: &Context<'_>) -> Result<bool> {
+        let session = ctx.session();
+
+        commands::finish_session(session)
+            .await
+            .map_err(|_| to_mutation_error("Failed to finish session", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_board(&self, ctx: &Context<'_>, id: Uuid, params: BoardParams) -> Result<BoardObject<'_>> {
         let user = ctx.user();
         let board = commands::get_board_by_id(id).await?;
