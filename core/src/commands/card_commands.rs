@@ -11,6 +11,23 @@ use crate::params::CardParams;
 
 use super::get_list_by_id;
 
+pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<bool> {
+    if !card.is_editable(Some(user)) {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "DELETE FROM cards WHERE id = $1",
+        card.id, // $1
+    )
+    .execute(db_pool)
+    .await?;
+
+    Ok(true)
+}
+
 pub async fn get_card_by_id<'a>(id: Uuid) -> sqlx::Result<Card<'a>> {
     let db_pool = db_pool().await;
 
