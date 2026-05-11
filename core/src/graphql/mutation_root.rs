@@ -92,6 +92,16 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn delete_list(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        let user = ctx.user();
+        let list = commands::get_list_by_id(id).await?;
+
+        commands::delete_list(user, &list)
+            .await
+            .map_err(|_| to_mutation_error("Failed to delete list", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn finish_session(&self, ctx: &Context<'_>) -> Result<bool> {
         let session = ctx.session();
 
