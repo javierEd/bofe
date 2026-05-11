@@ -70,7 +70,6 @@ pub(crate) struct Card<'a> {
 }
 
 impl Card<'_> {
-    #[allow(dead_code)]
     pub fn is_editable(&self, user: Option<&User>) -> bool {
         Some(self.user_id) == user.map(|u| u.id)
     }
