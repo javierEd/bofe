@@ -25,4 +25,4 @@ tower-http = { version = "0.6.10", features = ["cors", "fs", "trace"] }
 tracing.workspace = true
 uuid.workspace = true
 boards-core = { workspace = true, features = ["graphql"] }
-toolbox = { workspace = true, features = ["axum"] }
+toolbox.workspace = true
