@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 
-use async_graphql::{Context, EmptySubscription, Schema, SchemaBuilder};
+use async_graphql::{Context, EmptySubscription, ID, Result, Schema, SchemaBuilder};
+use uuid::Uuid;
 
 use crate::models::{Application, Session, User};
 
@@ -62,5 +63,15 @@ impl CustomContext for Context<'_> {
 
     fn user_opt(&self) -> Option<&User<'_>> {
         self.data_opt::<User<'_>>()
+    }
+}
+
+trait IDExt {
+    fn try_into_uuid(&self) -> Result<Uuid>;
+}
+
+impl IDExt for ID {
+    fn try_into_uuid(&self) -> Result<Uuid> {
+        Ok(Uuid::try_parse(self.as_ref())?)
     }
 }
