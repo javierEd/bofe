@@ -2,66 +2,25 @@ use std::net::SocketAddr;
 
 use async_graphql::extensions::apollo_persisted_queries::{ApolloPersistedQueries, LruCacheStorage};
 use async_graphql::extensions::{ApolloTracing, Logger};
-use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
+use axum::Router;
 use axum::body::Body;
-use axum::extract::State;
-use axum::http::{HeaderMap, HeaderName, Method, Request};
-use axum::response::{IntoResponse, Result};
+use axum::http::{Method, Request};
 use axum::routing::{get, post};
-use axum::{Json, Router};
-use axum_client_ip::ClientIp;
-use axum_extra::TypedHeader;
-use axum_extra::headers::Authorization;
-use axum_extra::headers::authorization::Bearer;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use toolbox::axum::OrHttpError;
 use toolbox::tracing::start_tracing_subscriber;
 
 use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use boards_core::{Info, commands};
 
 use crate::config::API_CONFIG;
+use crate::handlers::{get_index, post_graphql};
 
 mod config;
-
-pub const HEADER_X_APP_TOKEN: HeaderName = HeaderName::from_static("x-app-token");
-
-async fn get_index() -> impl IntoResponse {
-    Json(Info::default())
-}
-
-async fn post_graphql(
-    headers: HeaderMap,
-    State(schema): State<GraphqlSchema>,
-    authorization: Option<TypedHeader<Authorization<Bearer>>>,
-    ClientIp(client_ip): ClientIp,
-    batch_request: GraphQLBatchRequest,
-) -> Result<GraphQLResponse> {
-    let app_token = headers
-        .get(HEADER_X_APP_TOKEN)
-        .or_forbidden()?
-        .to_str()
-        .or_forbidden()?;
-
-    let application = commands::get_application_by_token(app_token).await.or_forbidden()?;
-
-    let mut batch_request = batch_request.into_inner().data(client_ip).data(application);
-
-    if let Some(TypedHeader(Authorization(bearer))) = authorization {
-        let token = bearer.token().to_owned();
-
-        let session = commands::get_session_by_token(&token).await.or_unauthorized()?;
-        let user = session.user().await.or_internal_server_error()?;
-
-        batch_request = batch_request.data(session).data(user);
-    }
-
-    Ok(schema.execute_batch(batch_request).await.into())
-}
+mod constants;
+mod handlers;
 
 #[tokio::main]
 async fn main() {
