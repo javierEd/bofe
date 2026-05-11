@@ -11,6 +11,23 @@ use crate::params::{ListParams, UpdateListParams};
 
 use super::get_board_by_id;
 
+pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
+    if !list.is_editable(Some(user)) {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "DELETE FROM lists WHERE id = $1",
+        list.id, // $1
+    )
+    .execute(db_pool)
+    .await?;
+
+    Ok(true)
+}
+
 async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let list_id = list.map(|l| l.id);
