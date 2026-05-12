@@ -39,5 +39,3 @@ Kanban style lists.
 | SESSION_TOKEN_MAX_LENGTH     | Number  | 128                                                | api             |
 | STORAGE_PATH                 | String  | ./storage/                                         | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                     | api             |
-
-Other environment variables: https://github.com/mangocubed/toolbox#environment-variables

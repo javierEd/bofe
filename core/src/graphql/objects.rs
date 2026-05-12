@@ -210,6 +210,10 @@ impl UserObject<'_> {
         &self.0.username
     }
 
+    async fn initials(&self) -> String {
+        self.0.initials()
+    }
+
     async fn display_name(&self) -> &str {
         &self.0.display_name
     }
