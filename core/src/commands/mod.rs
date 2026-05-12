@@ -2,6 +2,7 @@ use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use bytesize::ByteSize;
+use validator::ValidationErrors;
 
 mod application_commands;
 mod board_commands;
@@ -18,6 +19,24 @@ pub use session_commands::*;
 pub use user_commands::*;
 
 use crate::config::STORAGE_CONFIG;
+
+type ValidationResult<T = ()> = Result<T, ValidationErrors>;
+
+trait OrValidationErrors<T> {
+    fn or_validation_errors(self) -> ValidationResult<T>;
+}
+
+impl<T> OrValidationErrors<T> for Option<T> {
+    fn or_validation_errors(self) -> ValidationResult<T> {
+        self.ok_or_else(Default::default)
+    }
+}
+
+impl<T, E> OrValidationErrors<T> for Result<T, E> {
+    fn or_validation_errors(self) -> ValidationResult<T> {
+        self.map_err(|_| Default::default())
+    }
+}
 
 #[allow(dead_code)]
 fn get_available_space() -> ByteSize {
