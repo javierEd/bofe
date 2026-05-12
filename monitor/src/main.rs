@@ -1,15 +1,11 @@
 use std::time::Duration;
 
 use apalis::layers::WorkerBuilderExt;
-use apalis::layers::sentry::SentryLayer;
 use apalis::prelude::{Monitor, WorkerBuilder};
-use sentry::integrations::tower::NewSentryLayer;
 use tokio::signal::unix::SignalKind;
 use tracing::info;
 
-use toolbox::tracing::start_tracing_subscriber;
-
-use boards_core::jobs_storage;
+use boards_core::{jobs_storage, start_tracing_subscriber};
 
 mod config;
 mod handlers;
@@ -18,7 +14,7 @@ mod mailer;
 
 #[tokio::main]
 async fn main() {
-    let _guard = start_tracing_subscriber();
+    start_tracing_subscriber();
 
     info!("Monitor starting");
 
@@ -30,8 +26,6 @@ async fn main() {
     let new_session_worker = |index| {
         WorkerBuilder::new(format!("new-session-{index}"))
             .backend(jobs_storage.new_session.clone())
-            .layer(NewSentryLayer::new_from_top())
-            .layer(SentryLayer::new())
             .enable_tracing()
             .concurrency(1)
             .build(handlers::new_session)
@@ -40,8 +34,6 @@ async fn main() {
     let new_user_worker = |index| {
         WorkerBuilder::new(format!("new-user-{index}"))
             .backend(jobs_storage.new_user.clone())
-            .layer(NewSentryLayer::new_from_top())
-            .layer(SentryLayer::new())
             .enable_tracing()
             .concurrency(1)
             .build(handlers::new_user)

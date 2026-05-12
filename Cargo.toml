@@ -14,7 +14,6 @@ apalis = "1.0.0-rc.9"
 async-graphql = "8.0.0-rc.5"
 chrono = { version = "0.4.44", features = ["serde"] }
 envconfig = "0.11.1"
-sentry = "0.48.1"
 serde = "1.0.228"
 serde_json = "1.0.149"
 tokio = { version = "1.52.3", features = [
@@ -24,6 +23,5 @@ tokio = { version = "1.52.3", features = [
 ] }
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
-uuid = "1.23.1"
+uuid = { version = "1.23.1", features = ["serde"] }
 boards-core = { path = "./core", default-features = false }
-toolbox = { git = "https://github.com/mangocubed/toolbox.git", rev = "044f6b8" }
