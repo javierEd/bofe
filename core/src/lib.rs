@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::Layer;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 mod config;
 mod constants;
@@ -19,9 +23,9 @@ pub mod jobs;
 pub mod models;
 pub mod params;
 
-use config::{DATABASE_CONFIG, MONITOR_CONFIG};
-use jobs::{NewSessionJob, NewUserJob};
-use models::{Session, User};
+use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
+use crate::jobs::{NewSessionJob, NewUserJob};
+use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
@@ -99,4 +103,19 @@ impl Default for Info {
             version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
+}
+
+pub fn start_tracing_subscriber() {
+    let fmt_layer = tracing_subscriber::fmt::layer().with_filter(if cfg!(debug_assertions) {
+        LevelFilter::DEBUG
+    } else {
+        LevelFilter::INFO
+    });
+
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    tracing::info!("Tracing subscriber initialized.");
 }

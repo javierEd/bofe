@@ -8,17 +8,15 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.102"
-apalis = { workspace = true, features = ["sentry"] }
+apalis.workspace = true
 envconfig.workspace = true
 lettre = { version = "0.11.21", features = [
     "smtp-transport",
     "tokio1-native-tls",
 ] }
-reqwest = "0.13.3"
-sentry = { workspace = true, features = ["tower"] }
+reqwest = { version = "0.13.3", features = ["json"] }
 serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 url.workspace = true
 boards-core.workspace = true
-toolbox.workspace = true

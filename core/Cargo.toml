@@ -42,11 +42,12 @@ sqlx = { version = "0.8.6", features = [
 ] }
 strum = { version = "0.28.0", features = ["derive"] }
 tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber = "0.3.23"
 uucore = { version = "0.8.0", features = ["fsext"] }
 url.workspace = true
 uuid.workspace = true
 validator = { version = "0.20.0", features = ["derive"] }
-toolbox.workspace = true
 
 [features]
 graphql = ["dep:async-graphql"]

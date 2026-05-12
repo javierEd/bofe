@@ -3,17 +3,14 @@ use std::net::SocketAddr;
 use async_graphql::extensions::apollo_persisted_queries::{ApolloPersistedQueries, LruCacheStorage};
 use async_graphql::extensions::{ApolloTracing, Logger};
 use axum::Router;
-use axum::body::Body;
-use axum::http::{Method, Request};
+use axum::http::Method;
 use axum::routing::{get, post};
-use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use toolbox::tracing::start_tracing_subscriber;
-
 use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use boards_core::start_tracing_subscriber;
 
 use crate::config::API_CONFIG;
 use crate::handlers::{get_index, post_graphql};
@@ -24,7 +21,7 @@ mod handlers;
 
 #[tokio::main]
 async fn main() {
-    let _guard = start_tracing_subscriber();
+    start_tracing_subscriber();
 
     let mut graphql_schema_builder = GraphqlSchema::builder()
         .extension(ApolloPersistedQueries::new(LruCacheStorage::new(1024)))
@@ -47,8 +44,6 @@ async fn main() {
         .route("/", get(get_index))
         .route("/graphql", post(post_graphql))
         .with_state(graphql_schema)
-        .layer(SentryHttpLayer::new().enable_transaction())
-        .layer(NewSentryLayer::<Request<Body>>::new_from_top())
         .layer(TraceLayer::new_for_http())
         .layer(cors_layer)
         .layer(API_CONFIG.client_ip_source.clone().into_extension());
