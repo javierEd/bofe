@@ -7,7 +7,6 @@ use uuid::Uuid;
 use validator::Validate;
 
 use toolbox::cache::{AsyncRedisCacheExt, redis_cache_store};
-use toolbox::rand::random_string;
 
 use crate::config::SESSION_CONFIG;
 use crate::constants::{CACHE_PREFIX_GET_SESSION_BY_ID, CACHE_PREFIX_GET_SESSION_BY_TOKEN};
@@ -15,7 +14,7 @@ use crate::models::{Application, Session};
 use crate::params::SessionParams;
 use crate::{db_pool, jobs_storage};
 
-use super::{OrValidationErrors, ValidationResult, authenticate_user};
+use super::{OrValidationErrors, ValidationResult, authenticate_user, random_string};
 
 pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> {
     let db_pool = db_pool().await;

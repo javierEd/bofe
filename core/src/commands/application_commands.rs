@@ -4,7 +4,6 @@ use chrono::Utc;
 use validator::Validate;
 
 use toolbox::cache::redis_cache_store;
-use toolbox::rand::random_string;
 
 use crate::config::APPLICATION_CONFIG;
 use crate::constants::CACHE_PREFIX_GET_APPLICATION_BY_TOKEN;
@@ -12,7 +11,7 @@ use crate::db_pool;
 use crate::models::Application;
 use crate::params::ApplicationParams;
 
-use super::{OrValidationErrors, ValidationResult};
+use super::{OrValidationErrors, ValidationResult, random_string};
 
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
