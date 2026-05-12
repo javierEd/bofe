@@ -9,6 +9,7 @@ use tokio::sync::OnceCell;
 mod config;
 mod constants;
 mod enums;
+mod pagination;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;

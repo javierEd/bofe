@@ -4708,7 +4708,6 @@ dependencies = [
  "serde",
  "tracing",
  "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

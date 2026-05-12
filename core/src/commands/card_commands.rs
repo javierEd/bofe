@@ -1,11 +1,10 @@
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use toolbox::pagination::{CursorPage, CursorParams};
-
 use crate::constants::ERROR_IS_INVALID;
 use crate::db_pool;
 use crate::models::{Card, List, User};
+use crate::pagination::{CursorPage, CursorParams};
 use crate::params::CardParams;
 
 use super::{OrValidationErrors, ValidationResult, get_list_by_id};

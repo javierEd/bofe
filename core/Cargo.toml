@@ -46,7 +46,7 @@ uucore = { version = "0.8.0", features = ["fsext"] }
 url.workspace = true
 uuid.workspace = true
 validator = { version = "0.20.0", features = ["derive"] }
-toolbox = { workspace = true, features = ["pagination"] }
+toolbox.workspace = true
 
 [features]
 graphql = ["dep:async-graphql"]

@@ -3,13 +3,11 @@ use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use toolbox::pagination::CursorParams;
-
-use crate::Info;
-use crate::commands;
 use crate::enums::BoardVisibility;
 use crate::graphql::CustomContext;
 use crate::models::{Board, Card, List, Session, User};
+use crate::pagination::CursorParams;
+use crate::{Info, commands};
 
 pub struct BoardObject<'a>(pub Board<'a>);
 

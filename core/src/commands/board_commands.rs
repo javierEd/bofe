@@ -4,12 +4,12 @@ use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 use toolbox::cache::{AsyncRedisCacheExt, redis_cache_store};
-use toolbox::pagination::{CursorPage, CursorParams};
 
 use crate::constants::{CACHE_PREFIX_GET_BOARD_BY_ID, CACHE_PREFIX_GET_BOARD_BY_SLUG, ERROR_ALREADY_EXISTS};
 use crate::db_pool;
 use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
+use crate::pagination::{CursorPage, CursorParams};
 use crate::params::BoardParams;
 
 use super::{OrValidationErrors, ValidationResult};
