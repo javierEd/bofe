@@ -807,6 +807,7 @@ dependencies = [
  "cached",
  "chrono",
  "envconfig",
+ "rand 0.10.1",
  "regex",
  "rust_iso3166",
  "serde",
@@ -4703,7 +4704,6 @@ source = "git+https://github.com/mangocubed/toolbox.git?rev=044f6b8#044f6b8910f8
 dependencies = [
  "cached",
  "envconfig",
- "rand 0.10.1",
  "sentry",
  "serde",
  "tracing",
