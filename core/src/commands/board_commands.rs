@@ -4,15 +4,15 @@ use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 use toolbox::cache::{AsyncRedisCacheExt, redis_cache_store};
-use toolbox::constants::ERROR_ALREADY_EXISTS;
 use toolbox::pagination::{CursorPage, CursorParams};
-use toolbox::validator::{OrValidationErrors, ValidationResult};
 
-use crate::constants::{CACHE_PREFIX_GET_BOARD_BY_ID, CACHE_PREFIX_GET_BOARD_BY_SLUG};
+use crate::constants::{CACHE_PREFIX_GET_BOARD_BY_ID, CACHE_PREFIX_GET_BOARD_BY_SLUG, ERROR_ALREADY_EXISTS};
 use crate::db_pool;
 use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
 use crate::params::BoardParams;
+
+use super::{OrValidationErrors, ValidationResult};
 
 async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;

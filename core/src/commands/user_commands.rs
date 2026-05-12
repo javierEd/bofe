@@ -3,7 +3,6 @@ use cached::proc_macro::io_cached;
 use uuid::Uuid;
 
 use toolbox::cache::redis_cache_store;
-use toolbox::validator::{OrValidationErrors, ValidationResult};
 use validator::Validate;
 
 use crate::constants::*;
@@ -11,7 +10,7 @@ use crate::models::User;
 use crate::params::UserParams;
 use crate::{db_pool, jobs_storage};
 
-use super::encrypt_password;
+use super::{OrValidationErrors, ValidationResult, encrypt_password};
 
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
     let user = get_user_by_username_or_email(username_or_email).await?;

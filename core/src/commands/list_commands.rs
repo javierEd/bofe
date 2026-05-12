@@ -1,15 +1,14 @@
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use toolbox::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 use toolbox::pagination::{CursorPage, CursorParams};
-use toolbox::validator::{OrValidationErrors, ValidationResult};
 
+use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 use crate::db_pool;
 use crate::models::{Board, List, User};
 use crate::params::{ListParams, UpdateListParams};
 
-use super::get_board_by_id;
+use super::{OrValidationErrors, ValidationResult, get_board_by_id};
 
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
     if !list.is_editable(Some(user)) {
