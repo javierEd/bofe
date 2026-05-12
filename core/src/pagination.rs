@@ -22,8 +22,8 @@ impl<T> Default for CursorPage<T> {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CursorParams {
-    pub after: Option<Uuid>,
-    pub first: u8,
+    after: Option<Uuid>,
+    first: u8,
 }
 
 impl Default for CursorParams {

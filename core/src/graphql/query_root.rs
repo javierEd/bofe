@@ -35,7 +35,7 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_boards(CursorParams { after, first }, None, target_user).await;
+                let cursor_page = commands::paginate_boards(CursorParams::new(after, first), None, target_user).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
