@@ -181,6 +181,10 @@ impl Display for User<'_> {
 }
 
 impl User<'_> {
+    pub(crate) fn initials(&self) -> String {
+        self.username[0..2].to_uppercase()
+    }
+
     pub(crate) fn verify_password(&self, password: &str) -> bool {
         commands::verify_password(&self.encrypted_password, password)
     }
