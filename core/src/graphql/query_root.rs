@@ -1,12 +1,11 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
-use toolbox::pagination::CursorParams;
 use uuid::Uuid;
 
-use crate::Info;
-use crate::commands;
 use crate::graphql::objects::{BoardObject, InfoObject, ListObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
+use crate::pagination::CursorParams;
+use crate::{Info, commands};
 
 pub struct QueryRoot;
 
@@ -36,7 +35,7 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_boards(CursorParams { after, first }, None, target_user).await;
+                let cursor_page = commands::paginate_boards(CursorParams::new(after, first), None, target_user).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(

@@ -1,11 +1,10 @@
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use toolbox::pagination::{CursorPage, CursorParams};
-
 use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 use crate::db_pool;
 use crate::models::{Board, List, User};
+use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
 
 use super::{OrValidationErrors, ValidationResult, get_board_by_id};

@@ -3,13 +3,11 @@ use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use toolbox::pagination::CursorParams;
-
-use crate::Info;
-use crate::commands;
 use crate::enums::BoardVisibility;
 use crate::graphql::CustomContext;
 use crate::models::{Board, Card, List, Session, User};
+use crate::pagination::CursorParams;
+use crate::{Info, commands};
 
 pub struct BoardObject<'a>(pub Board<'a>);
 
@@ -51,7 +49,7 @@ impl BoardObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_lists(CursorParams { after, first }, &self.0).await;
+                let cursor_page = commands::paginate_lists(CursorParams::new(after, first), &self.0).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
@@ -150,7 +148,7 @@ impl ListObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_cards(CursorParams { after, first }, &self.0).await;
+                let cursor_page = commands::paginate_cards(CursorParams::new(after, first), &self.0).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
@@ -232,7 +230,7 @@ impl UserObject<'_> {
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
                 let cursor_page =
-                    commands::paginate_boards(CursorParams { after, first }, Some(&self.0), target_user).await;
+                    commands::paginate_boards(CursorParams::new(after, first), Some(&self.0), target_user).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
