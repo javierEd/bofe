@@ -16,13 +16,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum CliCommand {
-    CreateApplication {
+    Applications {
+        #[command(subcommand)]
+        command: ApplicationsCommand,
+    },
+    GraphqlSchema,
+}
+
+#[derive(Subcommand)]
+enum ApplicationsCommand {
+    Create {
         #[arg(short, long)]
         name: String,
         #[arg(short, long)]
         expires_at: Option<NaiveDate>,
     },
-    GraphqlSchema,
+    List,
 }
 
 fn print_application(application: &Application) {
@@ -45,12 +54,31 @@ async fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        CliCommand::GraphqlSchema => {
-            let graphql_schema = GraphqlSchema::builder().finish();
+        CliCommand::Applications {
+            command: ApplicationsCommand::List,
+        } => {
+            let result = commands::get_all_applications().await;
 
-            println!("{}", graphql_schema.sdl());
+            match result {
+                Ok(applications) => {
+                    let applications_len = applications.len();
+
+                    println!(
+                        "{} application{} found.",
+                        applications_len,
+                        if applications_len != 1 { "s" } else { "" }
+                    );
+
+                    for application in applications {
+                        print_application(&application);
+                    }
+                }
+                Err(err) => println!("Failed to get applications.\n\n{err}"),
+            }
         }
-        CliCommand::CreateApplication { name, expires_at } => {
+        CliCommand::Applications {
+            command: ApplicationsCommand::Create { name, expires_at },
+        } => {
             let result = commands::insert_application(ApplicationParams {
                 name: name.clone(),
                 expires_at: *expires_at,
@@ -64,6 +92,11 @@ async fn main() {
                 }
                 Err(err) => println!("Failed to create application.\n\n{err}"),
             }
+        }
+        CliCommand::GraphqlSchema => {
+            let graphql_schema = GraphqlSchema::builder().finish();
+
+            println!("{}", graphql_schema.sdl());
         }
     }
 }

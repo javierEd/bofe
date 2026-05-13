@@ -11,6 +11,14 @@ use crate::params::ApplicationParams;
 
 use super::{OrValidationErrors, ValidationResult, random_string, redis_cache_store};
 
+pub async fn get_all_applications<'a>() -> sqlx::Result<Vec<Application<'a>>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(Application, "SELECT * FROM applications")
+        .fetch_all(db_pool)
+        .await
+}
+
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ token.to_string() }"#,
