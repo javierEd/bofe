@@ -4,20 +4,10 @@ use validator::{Validate, ValidationError};
 
 use crate::commands;
 use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID, REGEX_SLUG, REGEX_USERNAME};
-use crate::enums::BoardVisibility;
+use crate::enums::{BoardVisibility, CountryCode};
 
 fn validate_birthdate(value: &NaiveDate) -> Result<(), ValidationError> {
     if *value > Utc::now().date_naive() {
-        return Err(ERROR_IS_INVALID.clone());
-    }
-
-    Ok(())
-}
-
-fn validate_country_code(value: &str) -> Result<(), ValidationError> {
-    use rust_iso3166::ALL_ALPHA2;
-
-    if !ALL_ALPHA2.contains(&value) {
         return Err(ERROR_IS_INVALID.clone());
     }
 
@@ -136,6 +126,5 @@ pub(crate) struct UserParams {
     pub full_name: String,
     #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
     pub birthdate: Option<NaiveDate>,
-    #[validate(custom(function = "validate_country_code"))]
-    pub country_code: String,
+    pub country_code: CountryCode,
 }

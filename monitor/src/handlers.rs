@@ -24,7 +24,7 @@ pub async fn new_session(job: NewSessionJob) -> Result<(), BoxDynError> {
         if let Ok(ip_geo_info) = result {
             let result = commands::update_session_location(
                 &session,
-                &ip_geo_info.location.country_code2,
+                ip_geo_info.location.country_code2,
                 &ip_geo_info.location.state_prov,
                 &ip_geo_info.location.city,
             )
