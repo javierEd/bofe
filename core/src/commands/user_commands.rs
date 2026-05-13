@@ -4,6 +4,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::constants::*;
+use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
 use crate::params::UserParams;
 use crate::{db_pool, jobs_storage};
@@ -30,7 +31,21 @@ pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User<'static>> {
 
     sqlx::query_as!(
         User,
-        "SELECT * FROM users WHERE disabled_at IS NULL AND id = $1 LIMIT 1",
+        r#"SELECT
+            id,
+            username,
+            email,
+            encrypted_password,
+            full_name,
+            display_name,
+            birthdate,
+            language_code AS "language_code!: LanguageCode",
+            country_code AS "country_code!: CountryCode",
+            disabled_at,
+            created_at,
+            updated_at
+        FROM users
+        WHERE disabled_at IS NULL AND id = $1 LIMIT 1"#,
         id
     )
     .fetch_one(db_pool)
@@ -52,7 +67,20 @@ pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'s
 
     sqlx::query_as!(
         User,
-        "SELECT * FROM users WHERE disabled_at IS NULL AND LOWER(username) = LOWER($1) LIMIT 1",
+        r#"SELECT
+            id,
+            username,
+            email,
+            encrypted_password,
+            full_name,
+            display_name,
+            birthdate,
+            language_code AS "language_code!: LanguageCode",
+            country_code AS "country_code!: CountryCode",
+            disabled_at,
+            created_at,
+            updated_at
+        FROM users WHERE disabled_at IS NULL AND LOWER(username) = LOWER($1) LIMIT 1"#,
         username
     )
     .fetch_one(db_pool)
@@ -74,9 +102,22 @@ async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<
 
     sqlx::query_as!(
         User,
-        "SELECT * FROM users
+        r#"SELECT
+            id,
+            username,
+            email,
+            encrypted_password,
+            full_name,
+            display_name,
+            birthdate,
+            language_code AS "language_code!: LanguageCode",
+            country_code AS "country_code!: CountryCode",
+            disabled_at,
+            created_at,
+            updated_at
+        FROM users
         WHERE disabled_at IS NULL AND (LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1))
-        LIMIT 1",
+        LIMIT 1"#,
         username_or_email
     )
     .fetch_one(db_pool)
@@ -136,7 +177,7 @@ pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User
 
     let user = sqlx::query_as!(
         User,
-        "INSERT INTO users (
+        r#"INSERT INTO users (
             username,
             email,
             encrypted_password,
@@ -144,14 +185,27 @@ pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User
             full_name,
             birthdate,
             country_code
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING
+            id,
+            username,
+            email,
+            encrypted_password,
+            full_name,
+            display_name,
+            birthdate,
+            language_code AS "language_code!: LanguageCode",
+            country_code AS "country_code!: CountryCode",
+            disabled_at,
+            created_at,
+            updated_at"#,
         params.username,             // $1
         params.email.to_lowercase(), // $2
         encrypted_password,          // $3
         display_name,                // $4
         params.full_name,            // $5
         params.birthdate,            // $6
-        params.country_code,         // $7
+        params.country_code as _,    // $7
     )
     .fetch_one(db_pool)
     .await

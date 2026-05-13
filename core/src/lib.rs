@@ -12,13 +12,13 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 mod config;
 mod constants;
-mod enums;
 mod pagination;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;
 
 pub mod commands;
+pub mod enums;
 pub mod jobs;
 pub mod models;
 pub mod params;

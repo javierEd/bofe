@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::commands;
-use crate::enums::BoardVisibility;
+use crate::enums::{BoardVisibility, CountryCode, LanguageCode};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Application<'a> {
@@ -118,7 +118,7 @@ pub struct Session<'a> {
     pub user_id: Uuid,
     pub token: Cow<'a, str>,
     pub ip_address: Cow<'a, str>,
-    pub country_code: Option<String>,
+    pub country_code: Option<CountryCode>,
     pub region: Option<String>,
     pub city: Option<String>,
     pub expires_at: DateTime<Utc>,
@@ -136,11 +136,11 @@ impl Display for Session<'_> {
 
 impl Session<'_> {
     pub fn location(&self) -> String {
-        let Some(country) = self.country_code.as_ref().and_then(|c| rust_iso3166::from_alpha2(c)) else {
+        let Some(country) = self.country_code else {
             return "Unknown".to_owned();
         };
 
-        let mut location = country.name.to_owned();
+        let mut location = country.name().to_owned();
 
         if let Some(region) = &self.region {
             location += &format!(", {region}");
@@ -167,8 +167,8 @@ pub struct User<'a> {
     pub full_name: Cow<'a, str>,
     pub display_name: Cow<'a, str>,
     pub birthdate: NaiveDate,
-    pub language_code: Cow<'a, str>,
-    pub country_code: Cow<'a, str>,
+    pub language_code: LanguageCode,
+    pub country_code: CountryCode,
     pub disabled_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,

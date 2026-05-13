@@ -1,4 +1,8 @@
-use std::{borrow::Cow, net::IpAddr, sync::OnceLock};
+use std::borrow::Cow;
+use std::net::IpAddr;
+use std::sync::OnceLock;
+
+use boards_core::enums::CountryCode;
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -8,7 +12,7 @@ use crate::config::IP_GEO_CONFIG;
 
 #[derive(Deserialize)]
 pub struct IpGeoLocation<'a> {
-    pub country_code2: Cow<'a, str>,
+    pub country_code2: CountryCode,
     pub state_prov: Cow<'a, str>,
     pub city: Cow<'a, str>,
 }

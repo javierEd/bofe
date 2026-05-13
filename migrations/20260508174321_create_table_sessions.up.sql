@@ -4,7 +4,7 @@ CREATE TABLE sessions (
     user_id uuid NOT NULL,
     token citext NOT NULL,
     ip_address varchar(255) NOT NULL,
-    country_code varchar(2) NULL,
+    country_code country_code NULL,
     region varchar(255) NULL,
     city varchar(255) NULL,
     expires_at timestamptz NOT NULL DEFAULT current_timestamp + interval '30 days',

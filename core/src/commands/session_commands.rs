@@ -8,6 +8,7 @@ use validator::Validate;
 
 use crate::config::SESSION_CONFIG;
 use crate::constants::{CACHE_PREFIX_GET_SESSION_BY_ID, CACHE_PREFIX_GET_SESSION_BY_TOKEN};
+use crate::enums::CountryCode;
 use crate::models::{Application, Session};
 use crate::params::SessionParams;
 use crate::{db_pool, jobs_storage};
@@ -40,7 +41,21 @@ pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
 
     sqlx::query_as!(
         Session,
-        "SELECT * FROM sessions WHERE expires_at > current_timestamp AND finished_at IS NULL AND id = $1 LIMIT 1",
+        r#"SELECT
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at
+        FROM sessions WHERE expires_at > current_timestamp AND finished_at IS NULL AND id = $1 LIMIT 1"#,
         id
     )
     .fetch_one(db_pool)
@@ -58,7 +73,21 @@ pub async fn get_session_by_token(token: &str) -> sqlx::Result<Session<'static>>
 
     sqlx::query_as!(
         Session,
-        "SELECT * FROM sessions WHERE token = $1 AND expires_at > current_timestamp AND finished_at IS NULL LIMIT 1",
+        r#"SELECT
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at
+        FROM sessions WHERE token = $1 AND expires_at > current_timestamp AND finished_at IS NULL LIMIT 1"#,
         token
     )
     .fetch_one(db_pool)
@@ -83,8 +112,21 @@ pub(crate) async fn insert_session<'a>(
 
     let session = sqlx::query_as!(
         Session,
-        "INSERT INTO sessions (application_id, user_id, token, ip_address, expires_at) VALUES ($1, $2, $3, $4, $5)
-        RETURNING *",
+        r#"INSERT INTO sessions (application_id, user_id, token, ip_address, expires_at) VALUES ($1, $2, $3, $4, $5)
+        RETURNING
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at"#,
         application.id,         // $1
         user.id,                // $2
         token,                  // $3
@@ -111,7 +153,7 @@ async fn remove_session_cache(session: &Session<'_>) {
 
 pub async fn update_session_location<'a>(
     session: &Session<'_>,
-    country_code: &str,
+    country_code: CountryCode,
     region: &str,
     city: &str,
 ) -> sqlx::Result<Session<'a>> {
@@ -119,12 +161,25 @@ pub async fn update_session_location<'a>(
 
     let session = sqlx::query_as!(
         Session,
-        "UPDATE sessions SET country_code = $2, region = $3, city = $4 WHERE finished_at IS NULL AND id = $1
-        RETURNING *",
-        session.id,   // $1
-        country_code, // $2
-        region,       // $3
-        city          // $4
+        r#"UPDATE sessions SET country_code = $2, region = $3, city = $4 WHERE finished_at IS NULL AND id = $1
+        RETURNING
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at"#,
+        session.id,        // $1
+        country_code as _, // $2
+        region,            // $3
+        city               // $4
     )
     .fetch_one(db_pool)
     .await?;

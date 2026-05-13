@@ -73,7 +73,7 @@ pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
             name,
             slug,
             description,
-            visibility as "visibility!: BoardVisibility",
+            visibility AS "visibility!: BoardVisibility",
             created_at,
             updated_at
         FROM boards WHERE id = $1 LIMIT 1"#,
@@ -114,7 +114,7 @@ async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
             name,
             slug,
             description,
-            visibility as "visibility!: BoardVisibility",
+            visibility AS "visibility!: BoardVisibility",
             created_at,
             updated_at
         FROM boards WHERE LOWER(slug) = $1 LIMIT 1"#,
@@ -194,7 +194,7 @@ pub async fn paginate_boards<'a>(
                     name,
                     slug,
                     description,
-                    visibility as "visibility!: BoardVisibility",
+                    visibility AS "visibility!: BoardVisibility",
                     created_at,
                     updated_at
                 FROM boards
