@@ -27,6 +27,7 @@ cached = { version = "0.59.0", features = [
     "redis_tokio",
 ] }
 chrono.workspace = true
+convert_case = "0.11.0"
 envconfig.workspace = true
 rand = "0.10.1"
 regex = "1.12.3"
