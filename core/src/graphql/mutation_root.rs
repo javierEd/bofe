@@ -1,5 +1,6 @@
 use async_graphql::dynamic::indexmap::IndexMap;
 use async_graphql::{Context, Error, ErrorExtensions, Name, Object, Result, Value};
+use convert_case::{Case, Casing};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
@@ -22,7 +23,7 @@ fn to_mutation_error(message: &str, errors: ValidationErrors) -> Error {
                 details.insert(Name::new("code"), Value::from(error[0].code.clone()));
                 details.insert(Name::new("message"), Value::from(error[0].message.clone()));
 
-                (Name::new(field), Value::from(details))
+                (Name::new(field.to_case(Case::Camel)), Value::from(details))
             })
             .collect(),
     );
@@ -118,6 +119,16 @@ impl MutationRoot {
         commands::finish_session(session)
             .await
             .map_err(|_| to_mutation_error("Failed to finish session", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn refresh_session(&self, ctx: &Context<'_>) -> Result<SessionObject<'_>> {
+        let session = ctx.session();
+
+        commands::refresh_session(session)
+            .await
+            .map(SessionObject)
+            .map_err(|_| to_mutation_error("Failed to refresh session", ValidationErrors::new()))
     }
 
     #[graphql(guard = "UserGuard")]

@@ -142,6 +142,44 @@ pub(crate) async fn insert_session<'a>(
     Ok(session)
 }
 
+pub(crate) async fn refresh_session<'a>(session: &Session<'_>) -> sqlx::Result<Session<'a>> {
+    let db_pool = db_pool().await;
+
+    let token = random_string(SESSION_CONFIG.token_length());
+    let expires_at = Utc::now() + SESSION_CONFIG.ttl();
+
+    let session = sqlx::query_as!(
+        Session,
+        r#"UPDATE sessions SET token = $2, expires_at = $3, refreshed_at = current_timestamp
+        WHERE
+            id = $1 AND finished_at IS NULL AND expires_at > current_timestamp
+            AND (refreshed_at IS NULL OR refreshed_at < current_timestamp - INTERVAL '1 minute')
+        RETURNING
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at"#,
+        session.id, // $1
+        token,      // $2
+        expires_at, // $3
+    )
+    .fetch_one(db_pool)
+    .await?;
+
+    remove_session_cache(&session).await;
+
+    Ok(session)
+}
+
 async fn remove_session_cache(session: &Session<'_>) {
     let token = session.token.to_string();
 
