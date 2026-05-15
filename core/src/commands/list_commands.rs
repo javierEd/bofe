@@ -148,9 +148,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 
     if list_name_exists(&board, Some(list), name).await {
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
-    }
 
-    if !validation_errors.is_empty() {
         return Err(validation_errors);
     }
 

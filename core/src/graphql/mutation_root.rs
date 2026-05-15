@@ -8,7 +8,9 @@ use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::{GuestGuard, UserGuard};
 use crate::graphql::objects::{BoardObject, CardObject, ListObject, SessionObject, UserObject};
-use crate::params::{BoardParams, CardParams, ListParams, SessionParams, UpdateListParams, UserParams};
+use crate::params::{
+    BoardParams, CardParams, ListParams, SessionParams, UpdateCardParams, UpdateListParams, UserParams,
+};
 
 pub struct MutationRoot;
 
@@ -140,6 +142,17 @@ impl MutationRoot {
             .await
             .map(BoardObject)
             .map_err(|errors| to_mutation_error("Failed to update board", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_card(&self, ctx: &Context<'_>, id: Uuid, params: UpdateCardParams) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+        let card = commands::get_card_by_id(id).await?;
+
+        commands::update_card(user, &card, params)
+            .await
+            .map(CardObject)
+            .map_err(|errors| to_mutation_error("Failed to update card", errors))
     }
 
     #[graphql(guard = "UserGuard")]
