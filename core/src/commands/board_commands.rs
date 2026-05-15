@@ -252,7 +252,7 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
 
     let db_pool = db_pool().await;
 
-    let board = sqlx::query_as!(
+    let updated_board = sqlx::query_as!(
         Board,
         r#"UPDATE boards SET name = $2, slug = $3, description = $4, visibility = $5 WHERE id = $1
         RETURNING
@@ -274,7 +274,7 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
     .await
     .or_validation_errors()?;
 
-    remove_board_cache(&board).await;
+    remove_board_cache(board).await;
 
-    Ok(board)
+    Ok(updated_board)
 }

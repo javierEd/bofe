@@ -5,7 +5,7 @@ use crate::constants::ERROR_IS_INVALID;
 use crate::db_pool;
 use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
-use crate::params::CardParams;
+use crate::params::{CardParams, UpdateCardParams};
 
 use super::{OrValidationErrors, ValidationResult, get_list_by_id};
 
@@ -51,6 +51,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
         return Err(validation_errors);
     }
 
+    let content = params.content.trim();
     let position = suggest_card_position(&list).await;
 
     let db_pool = db_pool().await;
@@ -58,10 +59,10 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     sqlx::query_as!(
         Card,
         "INSERT INTO cards (list_id, user_id, content, position) VALUES ($1, $2, $3, $4) RETURNING *",
-        list.id,        // $1
-        user.id,        // $2
-        params.content, // $3
-        position,       // $4
+        list.id,  // $1
+        user.id,  // $2
+        content,  // $3
+        position, // $4
     )
     .fetch_one(db_pool)
     .await
@@ -106,6 +107,28 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'a>) ->
         },
     )
     .await
+}
+
+pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCardParams) -> ValidationResult<Card<'a>> {
+    params.validate()?;
+
+    if !card.is_editable(Some(user)) {
+        return Err(ValidationErrors::new());
+    }
+
+    let content = params.content.trim();
+
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Card,
+        "UPDATE cards SET content = $2 WHERE id = $1 RETURNING *",
+        card.id, // $1
+        content, // $2
+    )
+    .fetch_one(db_pool)
+    .await
+    .or_validation_errors()
 }
 
 pub async fn update_card_list<'a>(
