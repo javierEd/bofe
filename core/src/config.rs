@@ -53,10 +53,7 @@ impl CacheConfig {
 pub(crate) struct DatabaseConfig {
     #[envconfig(from = "DATABASE_MAX_CONNECTIONS", default = "5")]
     pub max_connections: u32,
-    #[envconfig(
-        from = "DATABASE_URL",
-        default = "postgres://mango3:mango3@127.0.0.1:5432/boards_dev"
-    )]
+    #[envconfig(from = "DATABASE_URL", default = "postgres://bofe:bofe@127.0.0.1:5432/bofe_dev")]
     pub url: String,
 }
 

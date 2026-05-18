@@ -1,5 +1,5 @@
 [package]
-name = "boards-core"
+name = "bofe-core"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

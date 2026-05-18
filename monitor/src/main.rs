@@ -5,7 +5,7 @@ use apalis::prelude::{Monitor, WorkerBuilder};
 use tokio::signal::unix::SignalKind;
 use tracing::info;
 
-use boards_core::{jobs_storage, start_tracing_subscriber};
+use bofe_core::{jobs_storage, start_tracing_subscriber};
 
 mod config;
 mod handlers;

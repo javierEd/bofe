@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
 
-use boards_core::commands;
-use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use boards_core::models::Application;
-use boards_core::params::ApplicationParams;
+use bofe_core::commands;
+use bofe_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use bofe_core::models::Application;
+use bofe_core::params::ApplicationParams;
 
 #[derive(Parser)]
 #[command(version)]

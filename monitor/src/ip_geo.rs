@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::net::IpAddr;
 use std::sync::OnceLock;
 
-use boards_core::enums::CountryCode;
+use bofe_core::enums::CountryCode;
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;

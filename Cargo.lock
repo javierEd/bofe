@@ -574,7 +574,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "boards-api"
+name = "bofe-api"
 version = "0.0.0-alpha.0"
 dependencies = [
  "async-graphql",
@@ -582,7 +582,7 @@ dependencies = [
  "axum",
  "axum-client-ip",
  "axum-extra",
- "boards-core",
+ "bofe-core",
  "envconfig",
  "serde",
  "serde_json",
@@ -593,17 +593,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "boards-cli"
+name = "bofe-cli"
 version = "0.0.0-alpha.0"
 dependencies = [
- "boards-core",
+ "bofe-core",
  "chrono",
  "clap",
  "tokio",
 ]
 
 [[package]]
-name = "boards-core"
+name = "bofe-core"
 version = "0.0.0-alpha.0"
 dependencies = [
  "anyhow",
@@ -633,12 +633,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "boards-monitor"
+name = "bofe-monitor"
 version = "0.0.0-alpha.0"
 dependencies = [
  "anyhow",
  "apalis",
- "boards-core",
+ "bofe-core",
  "envconfig",
  "lettre",
  "reqwest",
