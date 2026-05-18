@@ -9,8 +9,8 @@ use axum_extra::TypedHeader;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
 
-use boards_core::graphql::GraphqlSchema;
-use boards_core::{Info, commands};
+use bofe_core::graphql::GraphqlSchema;
+use bofe_core::{Info, commands};
 
 use crate::constants::*;
 

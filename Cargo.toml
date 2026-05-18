@@ -6,8 +6,8 @@ members = ["api", "cli", "core", "monitor"]
 version = "0.0.0-alpha.0"
 edition = "2024"
 authors = ["Javier E. <jaedns@gmail.com>"]
-homepage = "https://boards.mango3.app"
-repository = "https://github.com/mangocubed/boards"
+homepage = "https://bofe.app"
+repository = "https://github.com/javierEd/bofe"
 
 [workspace.dependencies]
 apalis = "1.0.0-rc.9"
@@ -24,4 +24,4 @@ tokio = { version = "1.52.3", features = [
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 uuid = { version = "1.23.1", features = ["serde"] }
-boards-core = { path = "./core", default-features = false }
+bofe-core = { path = "./core", default-features = false }

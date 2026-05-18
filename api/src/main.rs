@@ -9,8 +9,8 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use boards_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
-use boards_core::start_tracing_subscriber;
+use bofe_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
+use bofe_core::start_tracing_subscriber;
 
 use crate::config::API_CONFIG;
 use crate::handlers::{get_index, post_graphql};

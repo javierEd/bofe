@@ -1,5 +1,5 @@
 [package]
-name = "boards-api"
+name = "bofe-api"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -23,4 +23,4 @@ tokio.workspace = true
 tower-http = { version = "0.6.10", features = ["cors", "fs", "trace"] }
 tracing.workspace = true
 uuid.workspace = true
-boards-core = { workspace = true, features = ["graphql"] }
+bofe-core = { workspace = true, features = ["graphql"] }

@@ -4,7 +4,7 @@ use lettre::{Message, transport::smtp::authentication::Credentials};
 
 use crate::config::MAILER_CONFIG;
 
-use boards_core::models::{Session, User};
+use bofe_core::models::{Session, User};
 
 pub async fn send_email(to: &str, subject: &str, body: &str) -> anyhow::Result<()> {
     if !MAILER_CONFIG.enable {
@@ -48,13 +48,13 @@ pub async fn send_welcome_email(user: &User<'_>) -> anyhow::Result<()> {
     let message = format!(
         "Hello @{},
 
-        Welcome to Boards.
+        Welcome to Bofe.
 
         If you have any questions, please contact us at the following email address: {}",
         user.username, MAILER_CONFIG.support_email_address
     );
 
-    send_email(&user.email, "Welcome to Boards", &message).await
+    send_email(&user.email, "Welcome to Bofe", &message).await
 }
 
 pub async fn send_new_session_email(session: &Session<'_>) -> anyhow::Result<()> {
