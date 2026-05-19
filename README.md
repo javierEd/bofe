@@ -18,7 +18,6 @@ Kanban style boards.
 | ---------------------------- | ------- | -------------------------------------------- | --------------- |
 | API_ADDRESS                  | String  | 127.0.0.1:8005                               | api             |
 | API_CLIENT_IP_SOURCE         | String  | ConnectInfo                                  | api             |
-| API_SERVE_STORAGE            | Boolean | true                                         | api             |
 | APPLICATION_TOKEN_MIN_LENGTH | Number  | 64                                           | api             |
 | APPLICATION_TOKEN_MAX_LENGTH | Number  | 128                                          | api             |
 | APPLICATION_TTL_SECS         | Number  | 31104000                                     | api             |

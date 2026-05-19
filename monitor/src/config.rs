@@ -15,7 +15,7 @@ pub struct IpGeoConfig {
 pub struct MailerConfig {
     #[envconfig(from = "MAILER_ENABLE", default = "false")]
     pub enable: bool,
-    #[envconfig(from = "MAILER_SENDER_ADDRESS", default = "Mango³ dev <no-reply@localhost>")]
+    #[envconfig(from = "MAILER_SENDER_ADDRESS", default = "Bofe dev <no-reply@localhost>")]
     pub sender_address: String,
     #[envconfig(from = "MAILER_SMTP_ADDRESS", default = "localhost")]
     pub smtp_address: String,
