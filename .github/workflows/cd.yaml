@@ -129,6 +129,9 @@ jobs:
                   prerelease: ${{ contains(github.ref_name, '-alpha') }}
 
     deploy:
+        environment:
+            name: production
+            url: https://api.bofe.app/
         needs: [build_api, build_cli, build_monitor]
         runs-on: ubuntu-24.04
         steps:
