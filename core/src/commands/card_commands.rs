@@ -43,7 +43,9 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let mut validation_errors = ValidationErrors::new();
 
-    let list = get_list_by_id(params.list_id).await.or_validation_errors()?;
+    let list = get_list_by_id(params.list_id, Some(user))
+        .await
+        .or_validation_errors()?;
 
     if !list.is_editable(Some(user)) {
         validation_errors.add("list_id", ERROR_IS_INVALID.clone());
@@ -137,7 +139,7 @@ pub async fn update_card_list<'a>(
     new_list: &List<'_>,
     position: i16,
 ) -> ValidationResult<Card<'a>> {
-    let list = card.list().await.or_validation_errors()?;
+    let list = card.list(Some(user)).await.or_validation_errors()?;
 
     if !list.is_editable(Some(user))
         || !new_list.is_editable(Some(user))
@@ -190,7 +192,7 @@ pub async fn update_card_list<'a>(
 }
 
 pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
-    let list = card.list().await.or_validation_errors()?;
+    let list = card.list(Some(user)).await.or_validation_errors()?;
 
     if !list.is_editable(Some(user)) || position < 0 || position == card.position {
         return Err(ValidationErrors::new());

@@ -57,12 +57,32 @@ pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bo
     Ok(true)
 }
 
+pub async fn get_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+    let board = get_cached_board_by_id(id).await?;
+
+    if board.is_visible(target_user) {
+        Ok(board)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
+pub async fn get_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+    let board = get_cached_board_by_slug(slug).await?;
+
+    if board.is_visible(target_user) {
+        Ok(board)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_ID).await }"##
 )]
-pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
+async fn get_cached_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -83,27 +103,13 @@ pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     .await
 }
 
-pub async fn get_board_by_id_or_slug<'a>(id_or_slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
-    let board = if let Ok(id) = Uuid::try_parse(id_or_slug) {
-        get_board_by_id(id).await
-    } else {
-        get_board_by_slug(id_or_slug).await
-    }?;
-
-    if board.is_visible(target_user) {
-        Ok(board)
-    } else {
-        Err(sqlx::Error::RowNotFound)
-    }
-}
-
 #[io_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ slug.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_SLUG).await }"##
 )]
-async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
+async fn get_cached_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -180,7 +186,7 @@ pub async fn paginate_boards<'a>(
     CursorPage::new(
         &cursor_params,
         |node: &Board| node.id,
-        async |after| get_board_by_id(after).await.ok(),
+        async |after| get_board_by_id(after, target_user).await.ok(),
         async |cursor_resource, limit| {
             let cursor_name = cursor_resource.map(|c| c.name.to_string());
             let owner_user_id = owner_user.map(|u| u.id);
@@ -220,8 +226,8 @@ async fn remove_board_cache(board: &Board<'_>) {
     let slug = board.slug.to_lowercase();
 
     tokio::join!(
-        GET_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
-        GET_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
+        GET_CACHED_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
+        GET_CACHED_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
     );
 }
 
