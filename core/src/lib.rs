@@ -5,10 +5,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::OnceCell;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::Layer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer};
 
 mod config;
 mod constants;
@@ -106,16 +105,10 @@ impl Default for Info {
 }
 
 pub fn start_tracing_subscriber() {
-    let fmt_layer = tracing_subscriber::fmt::layer().with_filter(if cfg!(debug_assertions) {
-        LevelFilter::DEBUG
-    } else {
-        LevelFilter::INFO
-    });
+    let env_filter = EnvFilter::from_default_env();
+    let fmt_layer = tracing_subscriber::fmt::layer().with_filter(env_filter);
 
-    tracing_subscriber::registry()
-        .with(fmt_layer)
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    tracing_subscriber::registry().with(fmt_layer).init();
 
     tracing::info!("Tracing subscriber initialized.");
 }
