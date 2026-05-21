@@ -11,13 +11,17 @@ pub struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
-    async fn board(&self, ctx: &Context<'_>, id_or_slug: String) -> Option<BoardObject<'_>> {
+    async fn board(&self, ctx: &Context<'_>, id: ID) -> Result<Option<BoardObject<'_>>> {
+        let user = ctx.user_opt();
+        let id = id.try_into_uuid()?;
+
+        Ok(commands::get_board_by_id(id, user).await.map(BoardObject).ok())
+    }
+
+    async fn board_by_slug(&self, ctx: &Context<'_>, slug: String) -> Option<BoardObject<'_>> {
         let user = ctx.user_opt();
 
-        commands::get_board_by_id_or_slug(&id_or_slug, user)
-            .await
-            .map(BoardObject)
-            .ok()
+        commands::get_board_by_slug(&slug, user).await.map(BoardObject).ok()
     }
 
     async fn boards(
@@ -63,13 +67,7 @@ impl QueryRoot {
         let id = id.try_into_uuid()?;
         let user = ctx.user_opt();
 
-        let list = commands::get_list_by_id(id).await?;
-
-        if list.is_visible(user).await? {
-            Ok(Some(ListObject(list)))
-        } else {
-            Ok(None)
-        }
+        Ok(commands::get_list_by_id(id, user).await.map(ListObject).ok())
     }
 
     async fn user(&self, username: String) -> Option<UserObject<'_>> {

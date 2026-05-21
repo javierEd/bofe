@@ -74,8 +74,8 @@ impl Card<'_> {
         Some(self.user_id) == user.map(|u| u.id)
     }
 
-    pub async fn list(&self) -> sqlx::Result<List<'_>> {
-        commands::get_list_by_id(self.list_id).await
+    pub async fn list(&self, target_user: Option<&User<'_>>) -> sqlx::Result<List<'_>> {
+        commands::get_list_by_id(self.list_id, target_user).await
     }
 }
 
@@ -90,24 +90,20 @@ pub(crate) struct List<'a> {
 }
 
 impl List<'_> {
-    pub async fn board(&self) -> sqlx::Result<Board<'_>> {
-        commands::get_board_by_id(self.board_id).await
+    pub async fn board(&self, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'_>> {
+        commands::get_board_by_id(self.board_id, target_user).await
     }
 
     pub fn is_editable(&self, user: Option<&User>) -> bool {
         Some(self.user_id) == user.map(|u| u.id)
     }
 
-    pub async fn is_visible(&self, target_user: Option<&User<'_>>) -> sqlx::Result<bool> {
+    pub async fn is_visible(&self, target_user: Option<&User<'_>>) -> bool {
         if self.is_editable(target_user) {
-            return Ok(true);
+            return true;
         }
 
-        let board = self.board().await?;
-
-        Ok(Some(board.user_id) == target_user.map(|u| u.id)
-            || (board.visibility == BoardVisibility::Users && target_user.is_some())
-            || board.visibility == BoardVisibility::Public)
+        self.board(target_user).await.is_ok()
     }
 }
 

@@ -39,9 +39,12 @@ impl BoardObject<'_> {
 
     async fn lists(
         &self,
+        ctx: &Context<'_>,
         after: Option<Uuid>,
         first: Option<i32>,
     ) -> Result<Connection<Uuid, ListObject<'_>, EmptyFields, EmptyFields>> {
+        let target_user = ctx.user_opt();
+
         query(
             after.map(|a| a.to_string()),
             None,
@@ -49,7 +52,7 @@ impl BoardObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_lists(CursorParams::new(after, first), &self.0).await;
+                let cursor_page = commands::paginate_lists(CursorParams::new(after, first), &self.0, target_user).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(

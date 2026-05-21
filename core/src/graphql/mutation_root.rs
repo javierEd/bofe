@@ -87,7 +87,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn delete_board(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let user = ctx.user();
-        let board = commands::get_board_by_id(id).await?;
+        let board = commands::get_board_by_id(id, Some(user)).await?;
 
         commands::delete_board(user, &board)
             .await
@@ -107,7 +107,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn delete_list(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id).await?;
+        let list = commands::get_list_by_id(id, Some(user)).await?;
 
         commands::delete_list(user, &list)
             .await
@@ -136,7 +136,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_board(&self, ctx: &Context<'_>, id: Uuid, params: BoardParams) -> Result<BoardObject<'_>> {
         let user = ctx.user();
-        let board = commands::get_board_by_id(id).await?;
+        let board = commands::get_board_by_id(id, Some(user)).await?;
 
         commands::update_board(user, &board, params)
             .await
@@ -165,7 +165,7 @@ impl MutationRoot {
     ) -> Result<CardObject<'_>> {
         let user = ctx.user();
         let card = commands::get_card_by_id(id).await?;
-        let new_list = commands::get_list_by_id(list_id).await?;
+        let new_list = commands::get_list_by_id(list_id, Some(user)).await?;
 
         commands::update_card_list(user, &card, &new_list, position)
             .await
@@ -187,7 +187,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_list(&self, ctx: &Context<'_>, id: Uuid, params: UpdateListParams) -> Result<ListObject<'_>> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id).await?;
+        let list = commands::get_list_by_id(id, Some(user)).await?;
 
         commands::update_list(user, &list, params)
             .await
@@ -198,7 +198,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_list_position(&self, ctx: &Context<'_>, id: Uuid, position: i16) -> Result<ListObject<'_>> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id).await?;
+        let list = commands::get_list_by_id(id, Some(user)).await?;
 
         commands::update_list_position(user, &list, position)
             .await

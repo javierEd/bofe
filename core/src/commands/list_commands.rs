@@ -41,16 +41,22 @@ async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str
     .is_ok()
 }
 
-pub async fn get_list_by_id<'a>(id: Uuid) -> sqlx::Result<List<'a>> {
+pub async fn get_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<List<'a>> {
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let list = sqlx::query_as!(
         List,
         r#"SELECT * FROM lists WHERE id = $1 LIMIT 1"#,
         id, // $1
     )
     .fetch_one(db_pool)
-    .await
+    .await?;
+
+    if list.is_visible(target_user).await {
+        Ok(list)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
 }
 
 pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationResult<List<'a>> {
@@ -58,7 +64,9 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
 
     let mut validation_errors = ValidationErrors::new();
 
-    let board = get_board_by_id(params.board_id).await.or_validation_errors()?;
+    let board = get_board_by_id(params.board_id, Some(user))
+        .await
+        .or_validation_errors()?;
 
     if !board.is_editable(Some(user)) {
         validation_errors.add("board_id", ERROR_IS_INVALID.clone());
@@ -106,13 +114,17 @@ async fn suggest_list_position(board: &Board<'_>) -> i16 {
     .unwrap_or(0)
 }
 
-pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) -> CursorPage<List<'a>> {
+pub async fn paginate_lists<'a>(
+    cursor_params: CursorParams,
+    board: &Board<'a>,
+    target_user: Option<&User<'_>>,
+) -> CursorPage<List<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
         &cursor_params,
         |node: &List| node.id,
-        async |after| get_list_by_id(after).await.ok(),
+        async |after| get_list_by_id(after, target_user).await.ok(),
         async |cursor_resource, limit| {
             let cursor_position = cursor_resource.map(|c| c.position);
 
@@ -144,7 +156,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 
     let name = params.name.trim();
 
-    let board = list.board().await.or_validation_errors()?;
+    let board = list.board(Some(user)).await.or_validation_errors()?;
 
     if list_name_exists(&board, Some(list), name).await {
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
@@ -166,7 +178,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 }
 
 pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
-    let board = list.board().await.or_validation_errors()?;
+    let board = list.board(Some(user)).await.or_validation_errors()?;
 
     if !board.is_editable(Some(user)) || position < 0 || position == list.position {
         return Err(ValidationErrors::new());
