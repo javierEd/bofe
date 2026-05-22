@@ -113,6 +113,10 @@ impl CardObject<'_> {
         self.0.is_editable(ctx.user_opt())
     }
 
+    async fn user(&self) -> Result<UserObject<'_>> {
+        Ok(self.0.user().await.map(UserObject)?)
+    }
+
     async fn created_at(&self) -> DateTime<Utc> {
         self.0.created_at
     }
