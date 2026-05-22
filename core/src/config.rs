@@ -12,6 +12,7 @@ pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheCo
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
+pub(crate) static PUBSUB_CONFIG: LazyLock<PubsubConfig> = LazyLock::new(|| PubsubConfig::init_from_env().unwrap());
 pub(crate) static SESSION_CONFIG: LazyLock<SessionConfig> = LazyLock::new(|| SessionConfig::init_from_env().unwrap());
 pub(crate) static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 
@@ -60,6 +61,12 @@ pub(crate) struct DatabaseConfig {
 #[derive(Envconfig)]
 pub(crate) struct MonitorConfig {
     #[envconfig(from = "MONITOR_REDIS_URL", default = "redis://127.0.0.1:6379/1")]
+    pub redis_url: String,
+}
+
+#[derive(Envconfig)]
+pub(crate) struct PubsubConfig {
+    #[envconfig(from = "PUBSUB_REDIS_URL", default = "redis://127.0.0.1:6379/2")]
     pub redis_url: String,
 }
 

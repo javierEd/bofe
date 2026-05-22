@@ -33,6 +33,7 @@ Kanban style boards.
 | MAILER_SMTP_USERNAME         | String  |                                              | monitor         |
 | MAILER_SUPPORT_EMAIL_ADDRESS | String  | support@localhost                            | monitor         |
 | MONITOR_REDIS_URL            | String  | redis://127.0.0.1:6379/1                     | api,cli,monitor |
+| PUBSUB_REDIS_URL             | String  | redis://127.0.0.1:6379/2                     | api,monitor     |
 | SESSION_TTL_SECS             | Number  | 2592000                                      | api             |
 | SESSION_TOKEN_MIN_LENGTH     | Number  | 64                                           | api             |
 | SESSION_TOKEN_MAX_LENGTH     | Number  | 128                                          | api             |
