@@ -1,5 +1,5 @@
 use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
+use cached::macros::concurrent_cached;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -21,7 +21,7 @@ pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &st
     }
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, User>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_ID).await }"##
@@ -52,7 +52,7 @@ pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User<'static>> {
     .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, User<'_>>",
@@ -87,7 +87,7 @@ pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'s
     .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username_or_email.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, User<'_>>",
@@ -124,7 +124,7 @@ async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<
     .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ email.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, Uuid>",
@@ -146,7 +146,7 @@ async fn get_user_id_by_email(email: &str) -> sqlx::Result<Uuid> {
     .map(|record| record.id)
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, Uuid>",

@@ -1,5 +1,5 @@
 use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
+use cached::macros::concurrent_cached;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
@@ -79,7 +79,7 @@ pub async fn get_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -
     }
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_ID).await }"##
@@ -105,7 +105,7 @@ async fn get_cached_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ slug.to_lowercase() }"#,
     ty = "AsyncRedisCache<String, Board<'_>>",
