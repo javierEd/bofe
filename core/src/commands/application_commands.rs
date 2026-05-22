@@ -1,5 +1,5 @@
 use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
+use cached::macros::concurrent_cached;
 use chrono::Utc;
 use validator::Validate;
 
@@ -19,7 +19,7 @@ pub async fn get_all_applications<'a>() -> sqlx::Result<Vec<Application<'a>>> {
         .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ token.to_string() }"#,
     ty = "AsyncRedisCache<String, Application<'_>>",

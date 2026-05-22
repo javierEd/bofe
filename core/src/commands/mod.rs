@@ -6,7 +6,7 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use bytesize::ByteSize;
 use cached::async_sync::OnceCell;
-use cached::{AsyncRedisCache, IOCachedAsync};
+use cached::{AsyncRedisCache, ConcurrentCachedAsync};
 use rand::distr::Alphanumeric;
 use rand::distr::uniform::SampleRange;
 use rand::{RngExt, rng};
@@ -47,7 +47,7 @@ where
         let _ = self
             .get_or_init(|| async { redis_cache_store(prefix).await })
             .await
-            .cache_remove(key)
+            .cache_delete(key)
             .await;
     }
 }
@@ -98,8 +98,8 @@ where
     V: DeserializeOwned + Display + Send + Serialize + Sync,
 {
     AsyncRedisCache::new(format!("{prefix}:"), CACHE_CONFIG.ttl())
-        .set_connection_string(&CACHE_CONFIG.redis_url)
-        .set_refresh(true)
+        .connection_string(&CACHE_CONFIG.redis_url)
+        .refresh(true)
         .build()
         .await
         .expect("Could not get redis cache")

@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
+use cached::macros::concurrent_cached;
 use chrono::Utc;
 use uuid::Uuid;
 use validator::Validate;
@@ -31,7 +31,7 @@ pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> 
     Ok(true)
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Session>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_SESSION_BY_ID).await }"##
@@ -62,7 +62,7 @@ pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
     .await
 }
 
-#[io_cached(
+#[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ token.to_string() }"#,
     ty = "AsyncRedisCache<String, Session>",
