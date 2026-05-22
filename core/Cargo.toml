@@ -29,7 +29,7 @@ cached = { version = "0.59.0", features = [
 chrono.workspace = true
 convert_case = "0.11.0"
 envconfig.workspace = true
-rand = "0.10.1"
+rand = { version = "0.10.1", features = ["getrandom"] }
 regex = "1.12.3"
 rust_iso3166 = "0.1.14"
 serde.workspace = true
