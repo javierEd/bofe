@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "bofe-api"
-version = "0.0.0-alpha.0"
+version = "0.0.0-alpha.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -625,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "bofe-cli"
-version = "0.0.0-alpha.0"
+version = "0.0.0-alpha.1"
 dependencies = [
  "bofe-core",
  "chrono",
@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "bofe-core"
-version = "0.0.0-alpha.0"
+version = "0.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "apalis",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "bofe-monitor"
-version = "0.0.0-alpha.0"
+version = "0.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "apalis",
