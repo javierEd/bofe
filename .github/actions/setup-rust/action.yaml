@@ -14,7 +14,7 @@ runs:
         - uses: cargo-bins/cargo-binstall@main
         - name: Install SQLx CLI
           shell: bash
-          run: cargo binstall -y sqlx-cli@0.8.6
+          run: cargo binstall -y sqlx-cli@0.9.0
         - name: Run database migrations
           shell: bash
           run: sqlx database setup
