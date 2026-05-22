@@ -19,6 +19,7 @@ async-graphql = { workspace = true, features = [
     "url",
     "uuid",
 ], optional = true }
+async-stream = "0.3.6"
 argon2 = "0.5.3"
 bytesize = "2.3.1"
 cached = { version = "0.59.0", features = [
@@ -29,7 +30,9 @@ cached = { version = "0.59.0", features = [
 chrono.workspace = true
 convert_case = "0.11.0"
 envconfig.workspace = true
+futures-util = "0.3.32"
 rand = { version = "0.10.1", features = ["getrandom"] }
+redis = "1.2.1"
 regex = "1.12.3"
 rust_iso3166 = "0.1.14"
 serde.workspace = true

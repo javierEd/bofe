@@ -68,6 +68,14 @@ impl BoardObject<'_> {
         .await
     }
 
+    async fn all_lists(&self) -> Result<Vec<ListObject<'_>>> {
+        Ok(commands::get_all_lists(&self.0)
+            .await?
+            .into_iter()
+            .map(ListObject)
+            .collect())
+    }
+
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {
         self.0.is_editable(ctx.user_opt())
     }
@@ -169,6 +177,14 @@ impl ListObject<'_> {
             },
         )
         .await
+    }
+
+    async fn all_cards(&self) -> Result<Vec<CardObject<'_>>> {
+        Ok(commands::get_all_cards(&self.0)
+            .await?
+            .into_iter()
+            .map(CardObject)
+            .collect())
     }
 
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {

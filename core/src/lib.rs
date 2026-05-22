@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use chrono::{DateTime, Utc};
@@ -22,12 +24,14 @@ pub mod jobs;
 pub mod models;
 pub mod params;
 
-use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG};
+use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG, PUBSUB_CONFIG};
 use crate::jobs::{NewSessionJob, NewUserJob};
 use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
+static PUBSUB_CLIENT: LazyLock<redis::Client> =
+    LazyLock::new(|| redis::Client::open(PUBSUB_CONFIG.redis_url.clone()).expect("Could not create Redis client"));
 
 fn block_on<T>(f: impl Future<Output = T>) -> T {
     tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
@@ -49,6 +53,10 @@ pub async fn jobs_storage<'a>() -> &'a JobsStorage {
     JOBS_STORAGE_CELL
         .get_or_init(|| async { JobsStorage::new().await })
         .await
+}
+
+pub fn pubsub_client() -> redis::Client {
+    PUBSUB_CLIENT.clone()
 }
 
 pub struct JobsStorage {

@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use async_graphql::{Context, EmptySubscription, ID, Result, Schema, SchemaBuilder};
+use async_graphql::{Context, ID, Result, Schema, SchemaBuilder};
 use uuid::Uuid;
 
 use crate::models::{Application, Session, User};
@@ -9,19 +9,21 @@ mod guards;
 mod mutation_root;
 mod objects;
 mod query_root;
+mod subscription_root;
 
 use mutation_root::MutationRoot;
 use query_root::QueryRoot;
+use subscription_root::SubscriptionRoot;
 
-pub type GraphqlSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
+pub type GraphqlSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
 
 pub trait GraphqlSchemaExt {
-    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, EmptySubscription>;
+    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, SubscriptionRoot>;
 }
 
 impl GraphqlSchemaExt for GraphqlSchema {
-    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, EmptySubscription> {
-        Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+    fn builder() -> SchemaBuilder<QueryRoot, MutationRoot, SubscriptionRoot> {
+        Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
     }
 }
 
