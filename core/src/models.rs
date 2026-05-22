@@ -77,6 +77,10 @@ impl Card<'_> {
     pub async fn list(&self, target_user: Option<&User<'_>>) -> sqlx::Result<List<'_>> {
         commands::get_list_by_id(self.list_id, target_user).await
     }
+
+    pub async fn user(&self) -> sqlx::Result<User<'_>> {
+        commands::get_user_by_id(self.user_id).await
+    }
 }
 
 pub(crate) struct List<'a> {
