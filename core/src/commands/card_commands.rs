@@ -7,7 +7,7 @@ use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{CardParams, UpdateCardParams};
 
-use super::{OrValidationErrors, ValidationResult, get_list_by_id};
+use super::{OrValidationErrors, ValidationResult, get_list_by_id, notify_board_channel};
 
 pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<bool> {
     if !card.is_editable(Some(user)) {
@@ -23,7 +23,21 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
+    let _ = notify_board_channel(&card.list(Some(user)).await?.board(Some(user)).await?);
+
     Ok(true)
+}
+
+pub async fn get_all_cards<'a>(list: &List<'_>) -> sqlx::Result<Vec<Card<'a>>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Card,
+        "SELECT * FROM cards WHERE list_id = $1 ORDER BY position ASC",
+        list.id, // $1
+    )
+    .fetch_all(db_pool)
+    .await
 }
 
 pub async fn get_card_by_id<'a>(id: Uuid) -> sqlx::Result<Card<'a>> {
@@ -58,7 +72,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let card = sqlx::query_as!(
         Card,
         "INSERT INTO cards (list_id, user_id, content, position) VALUES ($1, $2, $3, $4) RETURNING *",
         list.id,  // $1
@@ -68,7 +82,11 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     )
     .fetch_one(db_pool)
     .await
-    .or_validation_errors()
+    .or_validation_errors()?;
+
+    let _ = notify_board_channel(&list.board(Some(user)).await.or_validation_errors()?);
+
+    Ok(card)
 }
 
 async fn suggest_card_position(list: &List<'_>) -> i16 {
@@ -84,7 +102,7 @@ async fn suggest_card_position(list: &List<'_>) -> i16 {
     .unwrap_or(0)
 }
 
-pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'a>) -> CursorPage<Card<'a>> {
+pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) -> CursorPage<Card<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
@@ -122,7 +140,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCar
 
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let card = sqlx::query_as!(
         Card,
         "UPDATE cards SET content = $2 WHERE id = $1 RETURNING *",
         card.id, // $1
@@ -130,7 +148,19 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCar
     )
     .fetch_one(db_pool)
     .await
-    .or_validation_errors()
+    .or_validation_errors()?;
+
+    let _ = notify_board_channel(
+        &card
+            .list(Some(user))
+            .await
+            .or_validation_errors()?
+            .board(Some(user))
+            .await
+            .or_validation_errors()?,
+    );
+
+    Ok(card)
 }
 
 pub async fn update_card_list<'a>(
@@ -188,6 +218,8 @@ pub async fn update_card_list<'a>(
 
     transaction.commit().await.or_validation_errors()?;
 
+    let _ = notify_board_channel(&new_list.board(Some(user)).await.or_validation_errors()?);
+
     Ok(updated_card)
 }
 
@@ -243,6 +275,8 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     .or_validation_errors()?;
 
     transaction.commit().await.or_validation_errors()?;
+
+    let _ = notify_board_channel(&list.board(Some(user)).await.or_validation_errors()?);
 
     Ok(card)
 }

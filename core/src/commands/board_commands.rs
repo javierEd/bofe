@@ -10,7 +10,7 @@ use crate::models::{Board, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::BoardParams;
 
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, redis_cache_store};
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, notify_board_channel, redis_cache_store};
 
 async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
@@ -53,6 +53,8 @@ pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bo
         .await?;
 
     remove_board_cache(board).await;
+
+    let _ = notify_board_channel(board);
 
     Ok(true)
 }
@@ -281,6 +283,8 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
     .or_validation_errors()?;
 
     remove_board_cache(board).await;
+
+    let _ = notify_board_channel(&updated_board);
 
     Ok(updated_board)
 }

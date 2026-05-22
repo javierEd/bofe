@@ -1,9 +1,10 @@
-use async_graphql_axum::{GraphQLBatchRequest, GraphQLResponse};
+use async_graphql::Data;
+use async_graphql::http::ALL_WEBSOCKET_PROTOCOLS;
+use async_graphql_axum::{GraphQLBatchRequest, GraphQLProtocol, GraphQLResponse, GraphQLWebSocket};
 use axum::Json;
-use axum::extract::State;
+use axum::extract::{State, WebSocketUpgrade};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Result};
-
 use axum_client_ip::ClientIp;
 use axum_extra::TypedHeader;
 use axum_extra::headers::Authorization;
@@ -11,8 +12,16 @@ use axum_extra::headers::authorization::Bearer;
 
 use bofe_core::graphql::GraphqlSchema;
 use bofe_core::{Info, commands};
+use serde::Deserialize;
 
 use crate::constants::*;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct WsInitialPayload {
+    app_token: String,
+    session_token: Option<String>,
+}
 
 trait OrHttpError<T> {
     #[allow(clippy::result_large_err, dead_code)]
@@ -60,6 +69,38 @@ impl<T, E> OrHttpError<T> for Result<T, E> {
             Err(_) => Err(RESPONSE_ERROR_UNAUTHORIZED.clone().into()),
         }
     }
+}
+
+pub async fn get_graphql_ws(
+    State(schema): State<GraphqlSchema>,
+    protocol: GraphQLProtocol,
+    websocket: WebSocketUpgrade,
+) -> Result<impl IntoResponse> {
+    Ok(websocket.protocols(ALL_WEBSOCKET_PROTOCOLS).on_upgrade(move |stream| {
+        GraphQLWebSocket::new(stream, schema.clone(), protocol)
+            .on_connection_init(move |value: serde_json::Value| async move {
+                let Ok(payload) = serde_json::from_value::<WsInitialPayload>(value) else {
+                    return Err("Could not parse initial payload".into());
+                };
+
+                let mut data = Data::default();
+
+                let application = commands::get_application_by_token(&payload.app_token).await?;
+
+                data.insert(application);
+
+                if let Some(session_token) = payload.session_token {
+                    let session = commands::get_session_by_token(&session_token).await?;
+                    let user = session.user().await?;
+
+                    data.insert(session);
+                    data.insert(user);
+                }
+
+                Ok(data)
+            })
+            .serve()
+    }))
 }
 
 pub async fn get_index() -> impl IntoResponse {

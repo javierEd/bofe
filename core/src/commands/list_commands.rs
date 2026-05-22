@@ -7,7 +7,7 @@ use crate::models::{Board, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
 
-use super::{OrValidationErrors, ValidationResult, get_board_by_id};
+use super::{OrValidationErrors, ValidationResult, get_board_by_id, notify_board_channel};
 
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
     if !list.is_editable(Some(user)) {
@@ -22,6 +22,8 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     )
     .execute(db_pool)
     .await?;
+
+    let _ = notify_board_channel(&list.board(Some(user)).await?);
 
     Ok(true)
 }
@@ -39,6 +41,18 @@ async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str
     .fetch_one(db_pool)
     .await
     .is_ok()
+}
+
+pub async fn get_all_lists<'a>(board: &Board<'a>) -> sqlx::Result<Vec<List<'a>>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        List,
+        "SELECT * FROM lists WHERE board_id = $1 ORDER BY position ASC",
+        board.id, // $1
+    )
+    .fetch_all(db_pool)
+    .await
 }
 
 pub async fn get_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<List<'a>> {
@@ -88,7 +102,7 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
 
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let list = sqlx::query_as!(
         List,
         "INSERT INTO lists (board_id, user_id, name, position) VALUES ($1, $2, $3, $4) RETURNING *",
         board.id, // $1
@@ -98,7 +112,11 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
     )
     .fetch_one(db_pool)
     .await
-    .or_validation_errors()
+    .or_validation_errors()?;
+
+    let _ = notify_board_channel(&board);
+
+    Ok(list)
 }
 
 async fn suggest_list_position(board: &Board<'_>) -> i16 {
@@ -166,7 +184,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let list = sqlx::query_as!(
         List,
         "UPDATE lists SET name = $2 WHERE id = $1 RETURNING *",
         list.id, // $1
@@ -174,7 +192,11 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
     )
     .fetch_one(db_pool)
     .await
-    .or_validation_errors()
+    .or_validation_errors()?;
+
+    let _ = notify_board_channel(&board);
+
+    Ok(list)
 }
 
 pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
@@ -229,6 +251,8 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
     .or_validation_errors()?;
 
     transaction.commit().await.or_validation_errors()?;
+
+    let _ = notify_board_channel(&board);
 
     Ok(list)
 }

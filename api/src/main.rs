@@ -13,7 +13,7 @@ use bofe_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
 use bofe_core::start_tracing_subscriber;
 
 use crate::config::API_CONFIG;
-use crate::handlers::{get_index, post_graphql};
+use crate::handlers::{get_graphql_ws, get_index, post_graphql};
 
 mod config;
 mod constants;
@@ -43,6 +43,7 @@ async fn main() {
     let router = Router::new()
         .route("/", get(get_index))
         .route("/graphql", post(post_graphql))
+        .route("/ws", get(get_graphql_ws))
         .with_state(graphql_schema)
         .layer(TraceLayer::new_for_http())
         .layer(cors_layer)
