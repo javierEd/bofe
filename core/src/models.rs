@@ -72,6 +72,13 @@ impl Board<'_> {
         self.is_admin(user).await
     }
 
+    /// Returns true if the user can move lists on the board
+    ///
+    /// Only the board owner can move lists
+    pub fn can_move_list(&self, user: &User<'_>) -> bool {
+        self.is_editable(user)
+    }
+
     /// Returns true if the user is the owner or an admin member of the board
     pub async fn is_admin(&self, user: &User<'_>) -> bool {
         self.user_id == user.id || commands::get_admin_member(self, user).await.is_ok()
@@ -188,7 +195,7 @@ impl List<'_> {
     ///
     /// Only the board owner can move the list
     pub async fn is_movable(&self, user: &User<'_>) -> sqlx::Result<bool> {
-        self.is_editable(user).await
+        Ok(self.board().await?.can_move_list(user))
     }
 
     /// Returns true if the list is visible to the user

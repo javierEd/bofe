@@ -141,6 +141,16 @@ impl BoardObject<'_> {
         }
     }
 
+    async fn can_move_list(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_move_list(user)
+        {
+            true
+        } else {
+            false
+        }
+    }
+
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {
         if let Some(user) = ctx.user_opt()
             && self.0.is_editable(user)
