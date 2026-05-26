@@ -14,7 +14,7 @@ impl SubscriptionRoot {
         let id = id.try_into_uuid()?;
         let user = ctx.user_opt();
 
-        let board = commands::get_board_by_id(id, user).await?;
+        let board = commands::get_visible_board_by_id(id, user).await?;
 
         let mut pubsub = commands::create_or_join_board_channel(&board).await?;
 
@@ -24,7 +24,7 @@ impl SubscriptionRoot {
             let mut on_message = pubsub.on_message();
 
             while on_message.next().await.is_some() {
-                yield commands::get_board_by_id(id, user)
+                yield commands::get_visible_board_by_id(id, user)
                        .await
                        .map(BoardObject).ok();
             }

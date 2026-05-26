@@ -90,6 +90,13 @@ pub(crate) struct ListParams {
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+pub(crate) struct MemberParams {
+    pub board_id: Uuid,
+    pub user_id: Uuid,
+    pub is_admin: bool,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct SessionParams {
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
@@ -110,6 +117,11 @@ pub(crate) struct UpdateCardParams {
 pub(crate) struct UpdateListParams {
     #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
     pub name: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+pub(crate) struct UpdateMemberParams {
+    pub is_admin: bool,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]

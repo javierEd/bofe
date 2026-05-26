@@ -44,14 +44,71 @@ impl Display for Board<'_> {
 }
 
 impl Board<'_> {
-    pub fn is_editable(&self, user: Option<&User>) -> bool {
-        Some(self.user_id) == user.map(|u| u.id)
+    /// Returns true if the user can create cards
+    ///
+    /// Only members of the board can create cards
+    pub async fn can_create_card(&self, user: &User<'_>) -> bool {
+        self.is_member(user).await
     }
 
-    pub fn is_visible(&self, target_user: Option<&User>) -> bool {
-        Some(self.user_id) == target_user.map(|u| u.id)
-            || (self.visibility == BoardVisibility::Users && target_user.is_some())
-            || self.visibility == BoardVisibility::Public
+    /// Returns true if the user can create lists on the board
+    ///
+    /// Only the board owner can create lists
+    pub fn can_create_list(&self, user: &User<'_>) -> bool {
+        self.is_editable(user)
+    }
+
+    /// Returns true if the user can create members on the board
+    ///
+    /// Only the board owner can create members
+    pub fn can_create_member(&self, user: &User<'_>) -> bool {
+        self.is_editable(user)
+    }
+
+    /// Returns true if the user can move cards on the board
+    ///
+    /// Only the board owner or admin members can move cards
+    pub async fn can_move_card(&self, user: &User<'_>) -> bool {
+        self.is_admin(user).await
+    }
+
+    /// Returns true if the user can move lists on the board
+    ///
+    /// Only the board owner can move lists
+    pub fn can_move_list(&self, user: &User<'_>) -> bool {
+        self.is_editable(user)
+    }
+
+    /// Returns true if the user is the owner or an admin member of the board
+    pub async fn is_admin(&self, user: &User<'_>) -> bool {
+        self.user_id == user.id || commands::get_admin_member(self, user).await.is_ok()
+    }
+
+    /// Returns true if the user can edit the board
+    ///
+    /// Only board owner can edit the board
+    pub fn is_editable(&self, user: &User<'_>) -> bool {
+        self.user_id == user.id
+    }
+
+    /// Returns true if the user is the owner or a member of the board
+    pub async fn is_member(&self, target_user: &User<'_>) -> bool {
+        self.user_id == target_user.id || commands::get_member(self, target_user).await.is_ok()
+    }
+
+    /// Returns true if the board is visible to the user
+    pub async fn is_visible(&self, target_user: Option<&User<'_>>) -> bool {
+        match self.visibility {
+            BoardVisibility::Public => true,
+            BoardVisibility::Users => target_user.is_some(),
+            BoardVisibility::Private => {
+                if let Some(user) = target_user {
+                    self.is_member(user).await
+                } else {
+                    false
+                }
+            }
+        }
     }
 
     pub async fn user(&self) -> sqlx::Result<User<'_>> {
@@ -70,12 +127,26 @@ pub(crate) struct Card<'a> {
 }
 
 impl Card<'_> {
-    pub fn is_editable(&self, user: Option<&User>) -> bool {
-        Some(self.user_id) == user.map(|u| u.id)
+    pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
+        self.list().await?.board().await
     }
 
-    pub async fn list(&self, target_user: Option<&User<'_>>) -> sqlx::Result<List<'_>> {
-        commands::get_list_by_id(self.list_id, target_user).await
+    /// Returns true if the user can edit the card
+    ///
+    /// Only the owner of the card can edit the card
+    pub fn is_editable(&self, user: &User) -> bool {
+        self.user_id == user.id
+    }
+
+    /// Returns true if the user can move the card
+    ///
+    /// Only the board owner or admin members can move the card
+    pub async fn is_movable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        self.list().await?.can_move_card(user).await
+    }
+
+    pub async fn list(&self) -> sqlx::Result<List<'_>> {
+        commands::get_list_by_id(self.list_id).await
     }
 
     pub async fn user(&self) -> sqlx::Result<User<'_>> {
@@ -86,6 +157,7 @@ impl Card<'_> {
 pub(crate) struct List<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
+    #[allow(dead_code)]
     pub user_id: Uuid,
     pub name: Cow<'a, str>,
     pub position: i16,
@@ -94,20 +166,74 @@ pub(crate) struct List<'a> {
 }
 
 impl List<'_> {
-    pub async fn board(&self, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'_>> {
-        commands::get_board_by_id(self.board_id, target_user).await
+    pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
+        commands::get_board_by_id(self.board_id).await
     }
 
-    pub fn is_editable(&self, user: Option<&User>) -> bool {
-        Some(self.user_id) == user.map(|u| u.id)
+    /// Returns true if the user can create cards on the list
+    ///
+    /// Only members of the board can create cards on the list
+    pub async fn can_create_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_create_card(user).await)
     }
 
-    pub async fn is_visible(&self, target_user: Option<&User<'_>>) -> bool {
-        if self.is_editable(target_user) {
-            return true;
-        }
+    /// Returns true if the user can move the card
+    ///
+    /// Only the board owner or admin members can move cards
+    pub async fn can_move_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_move_card(user).await)
+    }
 
-        self.board(target_user).await.is_ok()
+    /// Returns true if the user can edit the list
+    ///
+    /// Only the board owner can edit the list
+    pub async fn is_editable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.is_editable(user))
+    }
+
+    /// Returns true if the user can move the list
+    ///
+    /// Only the board owner can move the list
+    pub async fn is_movable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_move_list(user))
+    }
+
+    /// Returns true if the list is visible to the user
+    pub async fn is_visible(&self, user: Option<&User<'_>>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.is_visible(user).await)
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub(crate) struct Member {
+    pub id: Uuid,
+    pub board_id: Uuid,
+    pub user_id: Uuid,
+    pub is_admin: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl Display for Member {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
+impl Member {
+    pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
+        commands::get_board_by_id(self.board_id).await
+    }
+
+    pub async fn user<'a>(&self) -> sqlx::Result<User<'a>> {
+        commands::get_user_by_id(self.user_id).await
+    }
+
+    /// Returns true if the user can edit the member
+    ///
+    /// Only the owner of the board can edit the member
+    pub async fn is_editable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.is_editable(user))
     }
 }
 
