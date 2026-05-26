@@ -7,10 +7,10 @@ use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{CardParams, UpdateCardParams};
 
-use super::{OrValidationErrors, ValidationResult, get_list_by_id, notify_board_channel};
+use super::{OrValidationErrors, ValidationResult, get_visible_list_by_id, notify_board_channel};
 
 pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<bool> {
-    if !card.is_editable(Some(user)) {
+    if !card.is_editable(user) {
         return Err(sqlx::Error::RowNotFound);
     }
 
@@ -23,7 +23,7 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&card.list(Some(user)).await?.board(Some(user)).await?);
+    let _ = notify_board_channel(&card.board().await?);
 
     Ok(true)
 }
@@ -57,11 +57,11 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let mut validation_errors = ValidationErrors::new();
 
-    let list = get_list_by_id(params.list_id, Some(user))
+    let list = get_visible_list_by_id(params.list_id, Some(user))
         .await
         .or_validation_errors()?;
 
-    if !list.is_editable(Some(user)) {
+    if !list.can_create_card(user).await.or_validation_errors()? {
         validation_errors.add("list_id", ERROR_IS_INVALID.clone());
 
         return Err(validation_errors);
@@ -84,7 +84,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&list.board(Some(user)).await.or_validation_errors()?);
+    let _ = notify_board_channel(&list.board().await.or_validation_errors()?);
 
     Ok(card)
 }
@@ -132,7 +132,7 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) ->
 pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
-    if !card.is_editable(Some(user)) {
+    if !card.is_editable(user) {
         return Err(ValidationErrors::new());
     }
 
@@ -150,15 +150,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCar
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(
-        &card
-            .list(Some(user))
-            .await
-            .or_validation_errors()?
-            .board(Some(user))
-            .await
-            .or_validation_errors()?,
-    );
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
 
     Ok(card)
 }
@@ -169,10 +161,9 @@ pub async fn update_card_list<'a>(
     new_list: &List<'_>,
     position: i16,
 ) -> ValidationResult<Card<'a>> {
-    let list = card.list(Some(user)).await.or_validation_errors()?;
+    let list = card.list().await.or_validation_errors()?;
 
-    if !list.is_editable(Some(user))
-        || !new_list.is_editable(Some(user))
+    if !card.is_movable(user).await.or_validation_errors()?
         || list.board_id != new_list.board_id
         || list.id == new_list.id
         || position < 0
@@ -218,15 +209,13 @@ pub async fn update_card_list<'a>(
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&new_list.board(Some(user)).await.or_validation_errors()?);
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
 
     Ok(updated_card)
 }
 
 pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position: i16) -> ValidationResult<Card<'a>> {
-    let list = card.list(Some(user)).await.or_validation_errors()?;
-
-    if !list.is_editable(Some(user)) || position < 0 || position == card.position {
+    if !card.is_movable(user).await.or_validation_errors()? || position < 0 || position == card.position {
         return Err(ValidationErrors::new());
     }
 
@@ -245,7 +234,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     if position > card.position {
         sqlx::query!(
             "UPDATE cards SET position = position - 1 WHERE list_id = $1 AND position BETWEEN $2 AND $3",
-            list.id,           // $1
+            card.list_id,      // $1
             card.position + 1, // $2
             position,          // $3
         )
@@ -255,7 +244,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     } else {
         sqlx::query!(
             "UPDATE cards SET position = position + 1 WHERE list_id = $1 AND position BETWEEN $2 AND $3",
-            list.id,           // $1
+            card.list_id,      // $1
             position,          // $2
             card.position - 1, // $3
         )
@@ -276,7 +265,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&list.board(Some(user)).await.or_validation_errors()?);
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
 
     Ok(card)
 }

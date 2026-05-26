@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::enums::BoardVisibility;
 use crate::graphql::CustomContext;
-use crate::models::{Board, Card, List, Session, User};
+use crate::models::{Board, Card, List, Member, Session, User};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
@@ -39,12 +39,9 @@ impl BoardObject<'_> {
 
     async fn lists(
         &self,
-        ctx: &Context<'_>,
         after: Option<Uuid>,
         first: Option<i32>,
     ) -> Result<Connection<Uuid, ListObject<'_>, EmptyFields, EmptyFields>> {
-        let target_user = ctx.user_opt();
-
         query(
             after.map(|a| a.to_string()),
             None,
@@ -52,7 +49,7 @@ impl BoardObject<'_> {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page = commands::paginate_lists(CursorParams::new(after, first), &self.0, target_user).await;
+                let cursor_page = commands::paginate_lists(CursorParams::new(after, first), &self.0).await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(
@@ -76,8 +73,82 @@ impl BoardObject<'_> {
             .collect())
     }
 
+    async fn members(
+        &self,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> Result<Connection<Uuid, MemberObject, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page = commands::paginate_members(CursorParams::new(after, first), &self.0).await;
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|member| Edge::new(member.id, MemberObject(member))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
+    }
+
+    async fn can_create_card(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_create_card(user).await
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn can_create_list(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_create_list(user)
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn can_create_member(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_create_member(user)
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn can_move_card(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_move_card(user).await
+        {
+            true
+        } else {
+            false
+        }
+    }
+
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {
-        self.0.is_editable(ctx.user_opt())
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_editable(user)
+        {
+            true
+        } else {
+            false
+        }
     }
 
     async fn created_at(&self) -> DateTime<Utc> {
@@ -110,7 +181,23 @@ impl CardObject<'_> {
     }
 
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {
-        self.0.is_editable(ctx.user_opt())
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_editable(user)
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn is_movable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_movable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     async fn user(&self) -> Result<UserObject<'_>> {
@@ -191,8 +278,79 @@ impl ListObject<'_> {
             .collect())
     }
 
-    async fn is_editable(&self, ctx: &Context<'_>) -> bool {
-        self.0.is_editable(ctx.user_opt())
+    async fn can_create_card(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_create_card(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn can_move_card(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_move_card(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn is_editable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_editable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn is_movable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_movable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
+
+pub struct MemberObject(pub Member);
+
+#[Object]
+impl MemberObject {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn user(&self) -> Result<UserObject<'_>> {
+        Ok(self.0.user().await.map(UserObject)?)
+    }
+
+    async fn is_admin(&self) -> bool {
+        self.0.is_admin
+    }
+
+    async fn is_editable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_editable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

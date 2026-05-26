@@ -2,6 +2,7 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
 use uuid::Uuid;
 
+use crate::graphql::guards::UserGuard;
 use crate::graphql::objects::{BoardObject, InfoObject, ListObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
@@ -15,13 +16,16 @@ impl QueryRoot {
         let user = ctx.user_opt();
         let id = id.try_into_uuid()?;
 
-        Ok(commands::get_board_by_id(id, user).await.map(BoardObject).ok())
+        Ok(commands::get_visible_board_by_id(id, user).await.map(BoardObject).ok())
     }
 
     async fn board_by_slug(&self, ctx: &Context<'_>, slug: String) -> Option<BoardObject<'_>> {
         let user = ctx.user_opt();
 
-        commands::get_board_by_slug(&slug, user).await.map(BoardObject).ok()
+        commands::get_visible_board_by_slug(&slug, user)
+            .await
+            .map(BoardObject)
+            .ok()
     }
 
     async fn boards(
@@ -67,10 +71,40 @@ impl QueryRoot {
         let id = id.try_into_uuid()?;
         let user = ctx.user_opt();
 
-        Ok(commands::get_list_by_id(id, user).await.map(ListObject).ok())
+        Ok(commands::get_visible_list_by_id(id, user).await.map(ListObject).ok())
     }
 
     async fn user(&self, username: String) -> Option<UserObject<'_>> {
         commands::get_user_by_username(&username).await.map(UserObject).ok()
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn users(
+        &self,
+        #[graphql(name = "query")] q: String,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> Result<Connection<Uuid, UserObject<'_>, EmptyFields, EmptyFields>> {
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page = commands::paginate_users(CursorParams::new(after, first), &q).await;
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|user| Edge::new(user.id, UserObject(user))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
     }
 }

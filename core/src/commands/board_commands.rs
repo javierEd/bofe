@@ -42,7 +42,7 @@ async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
 }
 
 pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bool> {
-    if !board.is_editable(Some(user)) {
+    if !board.is_editable(user) {
         return Err(sqlx::Error::RowNotFound);
     }
 
@@ -59,32 +59,12 @@ pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bo
     Ok(true)
 }
 
-pub async fn get_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
-    let board = get_cached_board_by_id(id).await?;
-
-    if board.is_visible(target_user) {
-        Ok(board)
-    } else {
-        Err(sqlx::Error::RowNotFound)
-    }
-}
-
-pub async fn get_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
-    let board = get_cached_board_by_slug(slug).await?;
-
-    if board.is_visible(target_user) {
-        Ok(board)
-    } else {
-        Err(sqlx::Error::RowNotFound)
-    }
-}
-
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     ty = "AsyncRedisCache<Uuid, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_ID).await }"##
 )]
-async fn get_cached_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
+pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -111,7 +91,7 @@ async fn get_cached_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     ty = "AsyncRedisCache<String, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_SLUG).await }"##
 )]
-async fn get_cached_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
+async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -130,6 +110,26 @@ async fn get_cached_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     )
     .fetch_one(db_pool)
     .await
+}
+
+pub async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+    let board = get_board_by_id(id).await?;
+
+    if board.is_visible(target_user).await {
+        Ok(board)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
+pub async fn get_visible_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+    let board = get_board_by_slug(slug).await?;
+
+    if board.is_visible(target_user).await {
+        Ok(board)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
 }
 
 pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
@@ -180,7 +180,7 @@ pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> Validatio
 
 pub async fn paginate_boards<'a>(
     cursor_params: CursorParams,
-    owner_user: Option<&User<'_>>,
+    member_user: Option<&User<'_>>,
     target_user: Option<&User<'_>>,
 ) -> CursorPage<Board<'a>> {
     let db_pool = db_pool().await;
@@ -188,10 +188,10 @@ pub async fn paginate_boards<'a>(
     CursorPage::new(
         &cursor_params,
         |node: &Board| node.id,
-        async |after| get_board_by_id(after, target_user).await.ok(),
+        async |after| get_board_by_id(after).await.ok(),
         async |cursor_resource, limit| {
             let cursor_name = cursor_resource.map(|c| c.name.to_string());
-            let owner_user_id = owner_user.map(|u| u.id);
+            let member_user_id = member_user.map(|u| u.id);
             let target_user_id = target_user.map(|u| u.id);
 
             sqlx::query_as!(
@@ -205,14 +205,25 @@ pub async fn paginate_boards<'a>(
                     visibility AS "visibility!: BoardVisibility",
                     created_at,
                     updated_at
-                FROM boards
+                FROM boards AS b
                 WHERE
                     ($1::text IS NULL OR name > $1)
-                    AND ($2::uuid IS NULL OR user_id = $2)
-                    AND (user_id = $3 OR (visibility = 'users' AND $3 IS NOT NULL) OR visibility = 'public')
+                    AND (
+                        $2::uuid IS NULL OR user_id = $2
+                        OR (SELECT id FROM members WHERE board_id = b.id AND user_id = $2 LIMIT 1) IS NOT NULL
+                    ) AND (
+                        CASE visibility
+                        WHEN 'public' THEN TRUE
+                        WHEN 'users' THEN $3::uuid IS NOT NULL
+                        ELSE
+                            ($2 IS NOT NULL AND $2 = $3)
+                            OR user_id = $3
+                            OR (SELECT id FROM members WHERE board_id = b.id AND user_id = $3 LIMIT 1) IS NOT NULL
+                        END
+                    )
                 ORDER BY name ASC LIMIT $4"#,
                 cursor_name,    // $1
-                owner_user_id,  // $2
+                member_user_id, // $2
                 target_user_id, // $3
                 limit,          // $4
             )
@@ -228,8 +239,8 @@ async fn remove_board_cache(board: &Board<'_>) {
     let slug = board.slug.to_lowercase();
 
     tokio::join!(
-        GET_CACHED_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
-        GET_CACHED_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
+        GET_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
+        GET_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
     );
 }
 
@@ -238,7 +249,7 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
 
     let mut validation_errors = ValidationErrors::new();
 
-    if !board.is_editable(Some(user)) {
+    if !board.is_editable(user) {
         return Err(validation_errors);
     }
 

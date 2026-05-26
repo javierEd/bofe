@@ -7,10 +7,10 @@ use crate::models::{Board, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
 
-use super::{OrValidationErrors, ValidationResult, get_board_by_id, notify_board_channel};
+use super::{OrValidationErrors, ValidationResult, get_visible_board_by_id, notify_board_channel};
 
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
-    if !list.is_editable(Some(user)) {
+    if !list.is_editable(user).await? {
         return Err(sqlx::Error::RowNotFound);
     }
 
@@ -23,7 +23,7 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&list.board(Some(user)).await?);
+    let _ = notify_board_channel(&list.board().await?);
 
     Ok(true)
 }
@@ -55,18 +55,22 @@ pub async fn get_all_lists<'a>(board: &Board<'a>) -> sqlx::Result<Vec<List<'a>>>
     .await
 }
 
-pub async fn get_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<List<'a>> {
+pub async fn get_list_by_id<'a>(id: Uuid) -> sqlx::Result<List<'a>> {
     let db_pool = db_pool().await;
 
-    let list = sqlx::query_as!(
+    sqlx::query_as!(
         List,
         r#"SELECT * FROM lists WHERE id = $1 LIMIT 1"#,
         id, // $1
     )
     .fetch_one(db_pool)
-    .await?;
+    .await
+}
 
-    if list.is_visible(target_user).await {
+pub async fn get_visible_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<List<'a>> {
+    let list = get_list_by_id(id).await?;
+
+    if list.is_visible(target_user).await? {
         Ok(list)
     } else {
         Err(sqlx::Error::RowNotFound)
@@ -78,11 +82,11 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
 
     let mut validation_errors = ValidationErrors::new();
 
-    let board = get_board_by_id(params.board_id, Some(user))
+    let board = get_visible_board_by_id(params.board_id, Some(user))
         .await
         .or_validation_errors()?;
 
-    if !board.is_editable(Some(user)) {
+    if !board.can_create_list(user) {
         validation_errors.add("board_id", ERROR_IS_INVALID.clone());
 
         return Err(validation_errors);
@@ -132,17 +136,13 @@ async fn suggest_list_position(board: &Board<'_>) -> i16 {
     .unwrap_or(0)
 }
 
-pub async fn paginate_lists<'a>(
-    cursor_params: CursorParams,
-    board: &Board<'a>,
-    target_user: Option<&User<'_>>,
-) -> CursorPage<List<'a>> {
+pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) -> CursorPage<List<'a>> {
     let db_pool = db_pool().await;
 
     CursorPage::new(
         &cursor_params,
         |node: &List| node.id,
-        async |after| get_list_by_id(after, target_user).await.ok(),
+        async |after| get_list_by_id(after).await.ok(),
         async |cursor_resource, limit| {
             let cursor_position = cursor_resource.map(|c| c.position);
 
@@ -168,13 +168,13 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 
     let mut validation_errors = ValidationErrors::new();
 
-    if !list.is_editable(Some(user)) {
+    if !list.is_editable(user).await.or_validation_errors()? {
         return Err(validation_errors);
     }
 
     let name = params.name.trim();
 
-    let board = list.board(Some(user)).await.or_validation_errors()?;
+    let board = list.board().await.or_validation_errors()?;
 
     if list_name_exists(&board, Some(list), name).await {
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
@@ -200,9 +200,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 }
 
 pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
-    let board = list.board(Some(user)).await.or_validation_errors()?;
-
-    if !board.is_editable(Some(user)) || position < 0 || position == list.position {
+    if !list.is_movable(user).await.or_validation_errors()? || position < 0 || position == list.position {
         return Err(ValidationErrors::new());
     }
 
@@ -221,7 +219,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
     if position > list.position {
         sqlx::query!(
             "UPDATE lists SET position = position - 1 WHERE board_id = $1 AND position BETWEEN $2 AND $3",
-            board.id,          // $1
+            list.board_id,     // $1
             list.position + 1, // $2
             position,          // $3
         )
@@ -231,7 +229,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
     } else {
         sqlx::query!(
             "UPDATE lists SET position = position + 1 WHERE board_id = $1 AND position BETWEEN $2 AND $3",
-            board.id,          // $1
+            list.board_id,     // $1
             position,          // $2
             list.position - 1, // $3
         )
@@ -252,7 +250,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&board);
+    let _ = notify_board_channel(&list.board().await.or_validation_errors()?);
 
     Ok(list)
 }

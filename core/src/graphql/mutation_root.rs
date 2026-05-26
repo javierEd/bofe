@@ -7,10 +7,8 @@ use validator::ValidationErrors;
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::{GuestGuard, UserGuard};
-use crate::graphql::objects::{BoardObject, CardObject, ListObject, SessionObject, UserObject};
-use crate::params::{
-    BoardParams, CardParams, ListParams, SessionParams, UpdateCardParams, UpdateListParams, UserParams,
-};
+use crate::graphql::objects::{BoardObject, CardObject, ListObject, MemberObject, SessionObject, UserObject};
+use crate::params::*;
 
 pub struct MutationRoot;
 
@@ -65,6 +63,16 @@ impl MutationRoot {
             .map_err(|errors| to_mutation_error("Failed to create list", errors))
     }
 
+    #[graphql(guard = "UserGuard")]
+    async fn create_member(&self, ctx: &Context<'_>, params: MemberParams) -> Result<MemberObject> {
+        let user = ctx.user();
+
+        commands::insert_member(user, params)
+            .await
+            .map(MemberObject)
+            .map_err(|errors| to_mutation_error("Failed to create member", errors))
+    }
+
     #[graphql(guard = "GuestGuard")]
     async fn create_session(&self, ctx: &Context<'_>, params: SessionParams) -> Result<SessionObject<'_>> {
         let application = ctx.application();
@@ -87,7 +95,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn delete_board(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let user = ctx.user();
-        let board = commands::get_board_by_id(id, Some(user)).await?;
+        let board = commands::get_visible_board_by_id(id, Some(user)).await?;
 
         commands::delete_board(user, &board)
             .await
@@ -107,11 +115,21 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn delete_list(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id, Some(user)).await?;
+        let list = commands::get_visible_list_by_id(id, Some(user)).await?;
 
         commands::delete_list(user, &list)
             .await
             .map_err(|_| to_mutation_error("Failed to delete list", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn delete_member(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        let user = ctx.user();
+        let member = commands::get_member_by_id(id).await?;
+
+        commands::delete_member(user, &member)
+            .await
+            .map_err(|_| to_mutation_error("Failed to delete member", ValidationErrors::new()))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -136,7 +154,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_board(&self, ctx: &Context<'_>, id: Uuid, params: BoardParams) -> Result<BoardObject<'_>> {
         let user = ctx.user();
-        let board = commands::get_board_by_id(id, Some(user)).await?;
+        let board = commands::get_visible_board_by_id(id, Some(user)).await?;
 
         commands::update_board(user, &board, params)
             .await
@@ -165,7 +183,7 @@ impl MutationRoot {
     ) -> Result<CardObject<'_>> {
         let user = ctx.user();
         let card = commands::get_card_by_id(id).await?;
-        let new_list = commands::get_list_by_id(list_id, Some(user)).await?;
+        let new_list = commands::get_visible_list_by_id(list_id, Some(user)).await?;
 
         commands::update_card_list(user, &card, &new_list, position)
             .await
@@ -187,7 +205,7 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_list(&self, ctx: &Context<'_>, id: Uuid, params: UpdateListParams) -> Result<ListObject<'_>> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id, Some(user)).await?;
+        let list = commands::get_visible_list_by_id(id, Some(user)).await?;
 
         commands::update_list(user, &list, params)
             .await
@@ -198,11 +216,22 @@ impl MutationRoot {
     #[graphql(guard = "UserGuard")]
     async fn update_list_position(&self, ctx: &Context<'_>, id: Uuid, position: i16) -> Result<ListObject<'_>> {
         let user = ctx.user();
-        let list = commands::get_list_by_id(id, Some(user)).await?;
+        let list = commands::get_visible_list_by_id(id, Some(user)).await?;
 
         commands::update_list_position(user, &list, position)
             .await
             .map(ListObject)
             .map_err(|errors| to_mutation_error("Failed to update list position", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_member(&self, ctx: &Context<'_>, id: Uuid, params: UpdateMemberParams) -> Result<MemberObject> {
+        let user = ctx.user();
+        let member = commands::get_member_by_id(id).await?;
+
+        commands::update_member(user, &member, params)
+            .await
+            .map(MemberObject)
+            .map_err(|errors| to_mutation_error("Failed to update member", errors))
     }
 }

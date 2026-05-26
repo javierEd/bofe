@@ -19,6 +19,7 @@ mod board_channel_commands;
 mod board_commands;
 mod card_commands;
 mod list_commands;
+mod member_commands;
 mod session_commands;
 mod user_commands;
 
@@ -27,6 +28,7 @@ pub(crate) use board_channel_commands::*;
 pub(crate) use board_commands::*;
 pub(crate) use card_commands::*;
 pub(crate) use list_commands::*;
+pub(crate) use member_commands::*;
 pub use session_commands::*;
 pub use user_commands::*;
 

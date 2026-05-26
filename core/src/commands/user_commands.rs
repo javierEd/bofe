@@ -6,6 +6,7 @@ use validator::Validate;
 use crate::constants::*;
 use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
+use crate::pagination::{CursorPage, CursorParams};
 use crate::params::UserParams;
 use crate::{db_pool, jobs_storage};
 
@@ -214,6 +215,53 @@ pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User
     jobs_storage().await.push_new_user(&user).await;
 
     Ok(user)
+}
+
+pub async fn paginate_users<'a>(cursor_params: CursorParams, query: &str) -> CursorPage<User<'a>> {
+    let query = query.trim();
+
+    if query.len() < 3 {
+        return CursorPage::default();
+    }
+
+    let db_pool = db_pool().await;
+
+    CursorPage::new(
+        &cursor_params,
+        |node: &User| node.id,
+        async |after| get_user_by_id(after).await.ok(),
+        async |cursor_resource, limit| {
+            let cursor_username = cursor_resource.map(|c| c.username.to_string());
+
+            sqlx::query_as!(
+                User,
+                r#"SELECT
+                    id,
+                    username,
+                    email,
+                    encrypted_password,
+                    full_name,
+                    display_name,
+                    birthdate,
+                    language_code AS "language_code!: LanguageCode",
+                    country_code AS "country_code!: CountryCode",
+                    disabled_at,
+                    created_at,
+                    updated_at
+                FROM users
+                WHERE
+                    ($1::text IS NULL OR username > $1) AND (username ILIKE $2 OR display_name ILIKE $2)
+                ORDER BY username ASC LIMIT $3"#,
+                cursor_username,        // $1
+                format!("%{}%", query), // $2
+                limit,                  // $3
+            )
+            .fetch_all(db_pool)
+            .await
+            .unwrap_or_default()
+        },
+    )
+    .await
 }
 
 pub(crate) async fn user_email_exists(email: &str) -> bool {
