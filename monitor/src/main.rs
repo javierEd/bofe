@@ -50,6 +50,7 @@ async fn main() {
     Monitor::new()
         .register(new_session_worker)
         .register(new_user_worker)
+        .register(password_changed_worker)
         .shutdown_timeout(Duration::from_millis(10000))
         .run_with_signal(async {
             info!("Monitor started");
