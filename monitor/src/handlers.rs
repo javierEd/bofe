@@ -6,8 +6,10 @@ use apalis::prelude::BoxDynError;
 use bofe_core::commands;
 use bofe_core::jobs::NewSessionJob;
 use bofe_core::jobs::NewUserJob;
+use bofe_core::jobs::PasswordChangedJob;
 
 use crate::ip_geo::IpGeo;
+use crate::mailer::send_password_changed_email;
 use crate::mailer::{admin_emails, send_new_session_email, send_welcome_email};
 
 pub async fn new_session(job: NewSessionJob) -> Result<(), BoxDynError> {
@@ -47,6 +49,14 @@ pub async fn new_user(job: NewUserJob) -> Result<(), BoxDynError> {
     let _ = admin_emails::send_new_user_email(&user).await;
 
     send_welcome_email(&user).await?;
+
+    Ok(())
+}
+
+pub async fn password_changed(job: PasswordChangedJob) -> Result<(), BoxDynError> {
+    let user = commands::get_user_by_id(job.user_id).await?;
+
+    send_password_changed_email(&user).await?;
 
     Ok(())
 }
