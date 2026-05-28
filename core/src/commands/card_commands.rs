@@ -52,6 +52,16 @@ pub async fn get_card_by_id<'a>(id: Uuid) -> sqlx::Result<Card<'a>> {
     .await
 }
 
+pub async fn get_visible_card_by_id<'a>(id: Uuid, user: Option<&User<'_>>) -> sqlx::Result<Card<'a>> {
+    let card = get_card_by_id(id).await?;
+
+    if card.is_visible(user).await? {
+        Ok(card)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
 pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
