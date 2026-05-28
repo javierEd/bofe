@@ -25,7 +25,7 @@ pub mod models;
 pub mod params;
 
 use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG, PUBSUB_CONFIG};
-use crate::jobs::{NewSessionJob, NewUserJob};
+use crate::jobs::{NewSessionJob, NewUserJob, PasswordChangedJob};
 use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
@@ -62,6 +62,7 @@ pub fn pubsub_client() -> redis::Client {
 pub struct JobsStorage {
     pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
+    pub password_changed: RedisStorage<PasswordChangedJob>,
 }
 
 impl JobsStorage {
@@ -69,6 +70,7 @@ impl JobsStorage {
         Self {
             new_session: Self::storage().await,
             new_user: Self::storage().await,
+            password_changed: Self::storage().await,
         }
     }
 
@@ -92,6 +94,14 @@ impl JobsStorage {
         self.new_user
             .clone()
             .push(NewUserJob { user_id: user.id })
+            .await
+            .expect("Could not store job");
+    }
+
+    pub(crate) async fn push_password_changed(&self, user: &User<'_>) {
+        self.password_changed
+            .clone()
+            .push(PasswordChangedJob { user_id: user.id })
             .await
             .expect("Could not store job");
     }

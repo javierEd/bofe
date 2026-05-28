@@ -39,6 +39,14 @@ async fn main() {
             .build(handlers::new_user)
     };
 
+    let password_changed_worker = |index| {
+        WorkerBuilder::new(format!("password-changed-{index}"))
+            .backend(jobs_storage.password_changed.clone())
+            .enable_tracing()
+            .concurrency(1)
+            .build(handlers::password_changed)
+    };
+
     Monitor::new()
         .register(new_session_worker)
         .register(new_user_worker)
