@@ -178,8 +178,12 @@ impl CardObject<'_> {
         self.0.id.into()
     }
 
-    async fn list_id(&self) -> Uuid {
-        self.0.list_id
+    async fn board(&self) -> Result<BoardObject<'_>> {
+        Ok(self.0.board().await.map(BoardObject)?)
+    }
+
+    async fn list(&self) -> Result<ListObject<'_>> {
+        Ok(self.0.list().await.map(ListObject)?)
     }
 
     async fn content(&self) -> &str {
