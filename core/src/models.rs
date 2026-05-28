@@ -145,6 +145,11 @@ impl Card<'_> {
         self.list().await?.can_move_card(user).await
     }
 
+    /// Returns true if the card is visible to the user
+    pub async fn is_visible(&self, user: Option<&User<'_>>) -> sqlx::Result<bool> {
+        self.list().await?.is_visible(user).await
+    }
+
     pub async fn list(&self) -> sqlx::Result<List<'_>> {
         commands::get_list_by_id(self.list_id).await
     }

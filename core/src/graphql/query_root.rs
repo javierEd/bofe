@@ -3,7 +3,7 @@ use async_graphql::{Context, ID, Object, Result};
 use uuid::Uuid;
 
 use crate::graphql::guards::UserGuard;
-use crate::graphql::objects::{BoardObject, InfoObject, ListObject, UserObject};
+use crate::graphql::objects::{BoardObject, CardObject, InfoObject, ListObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
@@ -57,6 +57,13 @@ impl QueryRoot {
             },
         )
         .await
+    }
+
+    async fn card(&self, ctx: &Context<'_>, id: ID) -> Result<Option<CardObject<'_>>> {
+        let user = ctx.user_opt();
+        let id = id.try_into_uuid()?;
+
+        Ok(commands::get_visible_card_by_id(id, user).await.map(CardObject).ok())
     }
 
     async fn current_user<'a>(&self, ctx: &'a Context<'_>) -> Option<UserObject<'a>> {
