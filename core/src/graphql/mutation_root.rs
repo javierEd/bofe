@@ -244,4 +244,14 @@ impl MutationRoot {
             .map(UserObject)
             .map_err(|errors| to_mutation_error("Failed to update password", errors))
     }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_profile(&self, ctx: &Context<'_>, params: UpdateProfileParams) -> Result<UserObject<'_>> {
+        let user = ctx.user();
+
+        commands::update_user_profile(user, params)
+            .await
+            .map(UserObject)
+            .map_err(|errors| to_mutation_error("Failed to update profile", errors))
+    }
 }

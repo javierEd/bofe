@@ -128,6 +128,18 @@ pub(crate) struct UpdatePasswordParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub struct UpdateProfileParams {
+    #[validate(length(min = 2, max = 255, message = "Must have at least 2 characters"))]
+    pub display_name: String,
+    #[validate(length(min = 2, max = 255, message = "Must have at least 2 characters"))]
+    pub full_name: String,
+    #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
+    pub birthdate: Option<NaiveDate>,
+    pub country_code: CountryCode,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub(crate) struct UserParams {
     #[validate(
         length(min = 3, max = 16, message = "Must have at least 3 characters"),

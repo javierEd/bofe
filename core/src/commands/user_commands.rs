@@ -7,7 +7,7 @@ use crate::constants::*;
 use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
 use crate::pagination::{CursorPage, CursorParams};
-use crate::params::{UpdatePasswordParams, UserParams};
+use crate::params::{UpdatePasswordParams, UpdateProfileParams, UserParams};
 use crate::{db_pool, jobs_storage};
 
 use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store};
@@ -325,6 +325,43 @@ pub(crate) async fn update_user_password<'a>(
     .or_validation_errors()?;
 
     jobs_storage().await.push_password_changed(user).await;
+
+    remove_user_cache(user).await;
+
+    Ok(updated_user)
+}
+
+pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParams) -> ValidationResult<User<'a>> {
+    params.validate()?;
+
+    let db_pool = db_pool().await;
+
+    let updated_user = sqlx::query_as!(
+        User,
+        r#"UPDATE users SET display_name = $2, full_name = $3, birthdate = $4, country_code = $5
+        WHERE disabled_at IS NULL AND id = $1
+        RETURNING
+            id,
+            username,
+            email,
+            encrypted_password,
+            full_name,
+            display_name,
+            birthdate,
+            language_code AS "language_code!: LanguageCode",
+            country_code AS "country_code!: CountryCode",
+            disabled_at,
+            created_at,
+            updated_at"#,
+        user.id,                  // $1
+        params.display_name,      // $2
+        params.full_name,         // $3
+        params.birthdate,         // $4
+        params.country_code as _  // $5
+    )
+    .fetch_one(db_pool)
+    .await
+    .or_validation_errors()?;
 
     remove_user_cache(user).await;
 
