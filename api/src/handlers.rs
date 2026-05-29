@@ -134,7 +134,7 @@ pub async fn get_user_avatar_image(
 ) -> Result<impl IntoResponse> {
     let size = params.size.unwrap_or(256);
 
-    if size < 16 || size > 512 || size & (size - 1) != 0 {
+    if !(16..=512).contains(&size) || size & (size - 1) != 0 {
         return Err(RESPONSE_ERROR_BAD_REQUEST.clone().into());
     }
 
