@@ -1,12 +1,17 @@
 use std::fmt::Display;
 use std::future::Future;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
+use ab_glyph::{FontRef, PxScale};
 use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use bytesize::ByteSize;
 use cached::async_sync::OnceCell;
 use cached::{AsyncRedisCache, ConcurrentCachedAsync};
+use image::{ImageBuffer, Pixel, Rgb, RgbImage};
+use imageproc::drawing::{draw_filled_rect_mut, draw_text_mut, text_size};
+use imageproc::rect::Rect;
 use rand::distr::Alphanumeric;
 use rand::distr::uniform::SampleRange;
 use rand::{RngExt, rng};
@@ -105,6 +110,43 @@ where
         .build()
         .await
         .expect("Could not get redis cache")
+}
+
+pub(crate) fn text_icon(text: &str, size: u16) -> anyhow::Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+    let text_initials = &text[0..2].to_uppercase();
+    let size = size as u32;
+
+    let background_color = text_to_rgb(text);
+    let mut text_color = background_color;
+
+    text_color.invert();
+
+    let mut rgb_image = RgbImage::new(size, size);
+
+    draw_filled_rect_mut(&mut rgb_image, Rect::at(0, 0).of_size(size, size), background_color);
+
+    let font_file = std::fs::read(&STORAGE_CONFIG.font_path)?;
+    let font = FontRef::try_from_slice(&font_file)?;
+    let scale = PxScale::from(size as f32 / 1.7);
+    let (text_width, _) = text_size(scale, &font, text_initials);
+    let x = ((size - text_width) / 2) as i32;
+    let y = (size as f32 / 4.6) as i32;
+
+    draw_text_mut(&mut rgb_image, text_color, x, y, scale, &font, text_initials);
+
+    Ok(rgb_image)
+}
+
+fn text_to_rgb(text: &str) -> Rgb<u8> {
+    let mut hasher = DefaultHasher::new();
+    text.hash(&mut hasher);
+    let hash_value = hasher.finish();
+
+    let red = (hash_value & 0xFF) as u8;
+    let green = ((hash_value >> 8) & 0xFF) as u8;
+    let blue = ((hash_value >> 16) & 0xFF) as u8;
+
+    Rgb([red, green, blue])
 }
 
 pub(crate) fn verify_password(encrypted_password: &str, password: &str) -> bool {

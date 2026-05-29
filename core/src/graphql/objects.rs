@@ -1,6 +1,7 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
+use url::Url;
 use uuid::Uuid;
 
 use crate::enums::BoardVisibility;
@@ -419,6 +420,10 @@ impl UserObject<'_> {
 
     async fn display_name(&self) -> &str {
         &self.0.display_name
+    }
+
+    async fn avatar_image_url(&self) -> Url {
+        self.0.avatar_image_url()
     }
 
     async fn boards(

@@ -1,11 +1,14 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+use std::path::PathBuf;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
+use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
+use crate::config::STORAGE_CONFIG;
 use crate::enums::{BoardVisibility, CountryCode, LanguageCode};
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -312,6 +315,37 @@ impl Display for User<'_> {
 }
 
 impl User<'_> {
+    pub fn avatar_image(&self, size: u16) -> anyhow::Result<Vec<u8>> {
+        let avatar_image_path = self.avatar_image_path(size);
+
+        if !avatar_image_path.exists() {
+            let avatar_image = commands::text_icon(&self.username, size)?;
+
+            std::fs::create_dir_all(
+                avatar_image_path
+                    .parent()
+                    .ok_or_else(|| anyhow::anyhow!("Failed to create directory"))?,
+            )?;
+
+            avatar_image.save(&avatar_image_path)?;
+        }
+
+        Ok(std::fs::read(&avatar_image_path)?)
+    }
+
+    fn avatar_image_path(&self, size: u16) -> PathBuf {
+        STORAGE_CONFIG
+            .path
+            .join(format!("users/{}/avatar-image/{size}x{size}.jpg", self.id))
+    }
+
+    pub fn avatar_image_url(&self) -> Url {
+        STORAGE_CONFIG
+            .url
+            .join(&format!("users/{}/avatar-image", self.id))
+            .unwrap()
+    }
+
     pub(crate) fn initials(&self) -> String {
         self.username[0..2].to_uppercase()
     }
