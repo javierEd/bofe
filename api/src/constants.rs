@@ -5,8 +5,16 @@ use axum::http::{HeaderName, StatusCode};
 
 pub const HEADER_X_APP_TOKEN: HeaderName = HeaderName::from_static("x-app-token");
 
+pub static RESPONSE_ERROR_BAD_REQUEST: LazyLock<(StatusCode, Json<serde_json::Value>)> = LazyLock::new(|| {
+    (
+        StatusCode::FORBIDDEN,
+        Json(serde_json::json!({"message": "Bad Request"})),
+    )
+});
 pub static RESPONSE_ERROR_FORBIDDEN: LazyLock<(StatusCode, Json<serde_json::Value>)> =
     LazyLock::new(|| (StatusCode::FORBIDDEN, Json(serde_json::json!({"message": "Forbidden"}))));
+pub static RESPONSE_ERROR_NOT_FOUND: LazyLock<(StatusCode, Json<serde_json::Value>)> =
+    LazyLock::new(|| (StatusCode::FORBIDDEN, Json(serde_json::json!({"message": "Not Found"}))));
 pub static RESPONSE_ERROR_INTERNAL_SERVER_ERROR: LazyLock<(StatusCode, Json<serde_json::Value>)> =
     LazyLock::new(|| {
         (

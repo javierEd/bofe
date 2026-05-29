@@ -92,9 +92,14 @@ impl SessionConfig {
 
 #[derive(Envconfig)]
 pub(crate) struct StorageConfig {
+    #[envconfig(
+        from = "STORAGE_FONT_PATH",
+        default = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    )]
+    pub font_path: PathBuf,
     #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
     #[allow(dead_code)]
-    #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/")]
+    #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/storage/")]
     pub url: Url,
 }
