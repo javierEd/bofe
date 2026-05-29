@@ -5,7 +5,7 @@ use crate::constants::ERROR_IS_INVALID;
 use crate::db_pool;
 use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
-use crate::params::{CardParams, UpdateCardParams};
+use crate::params::CardParams;
 
 use super::{OrValidationErrors, ValidationResult, get_visible_list_by_id, notify_board_channel};
 
@@ -139,11 +139,33 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) ->
     .await
 }
 
-pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCardParams) -> ValidationResult<Card<'a>> {
+pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
+    let mut validation_errors = ValidationErrors::new();
+
     if !card.is_editable(user) {
-        return Err(ValidationErrors::new());
+        return Err(validation_errors);
+    }
+
+    let mut position = card.position;
+
+    if card.list_id != params.list_id {
+        let list = card.list().await.or_validation_errors()?;
+        let new_list = get_visible_list_by_id(params.list_id, Some(user))
+            .await
+            .or_validation_errors()?;
+
+        if !card.is_movable(user).await.or_validation_errors()?
+            || !new_list.can_move_card(user).await.or_validation_errors()?
+            || list.board_id != new_list.board_id
+        {
+            validation_errors.add("list_id", ERROR_IS_INVALID.clone());
+
+            return Err(validation_errors);
+        }
+
+        position = suggest_card_position(&new_list).await;
     }
 
     let content = params.content.trim();
@@ -152,9 +174,11 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: UpdateCar
 
     let card = sqlx::query_as!(
         Card,
-        "UPDATE cards SET content = $2 WHERE id = $1 RETURNING *",
-        card.id, // $1
-        content, // $2
+        "UPDATE cards SET list_id = $2, content = $3, position = $4 WHERE id = $1 RETURNING *",
+        card.id,        // $1
+        params.list_id, // $2
+        content,        // $3
+        position,       // $4
     )
     .fetch_one(db_pool)
     .await
@@ -174,6 +198,7 @@ pub async fn update_card_list<'a>(
     let list = card.list().await.or_validation_errors()?;
 
     if !card.is_movable(user).await.or_validation_errors()?
+        || !new_list.can_move_card(user).await.or_validation_errors()?
         || list.board_id != new_list.board_id
         || list.id == new_list.id
         || position < 0

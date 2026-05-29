@@ -163,7 +163,7 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
-    async fn update_card(&self, ctx: &Context<'_>, id: Uuid, params: UpdateCardParams) -> Result<CardObject<'_>> {
+    async fn update_card(&self, ctx: &Context<'_>, id: Uuid, params: CardParams) -> Result<CardObject<'_>> {
         let user = ctx.user();
         let card = commands::get_card_by_id(id).await?;
 
