@@ -32,9 +32,10 @@ struct WsInitialPayload {
 }
 
 trait OrHttpError<T> {
-    #[allow(clippy::result_large_err, dead_code)]
+    #[allow(clippy::result_large_err)]
     fn or_forbidden(self) -> Result<T>;
 
+    #[allow(clippy::result_large_err)]
     fn or_not_found(self) -> Result<T>;
 
     #[allow(clippy::result_large_err)]
