@@ -33,6 +33,9 @@ struct WsInitialPayload {
 
 trait OrHttpError<T> {
     #[allow(clippy::result_large_err)]
+    fn or_bad_request(self) -> Result<T>;
+
+    #[allow(clippy::result_large_err)]
     fn or_forbidden(self) -> Result<T>;
 
     #[allow(clippy::result_large_err)]
@@ -46,6 +49,10 @@ trait OrHttpError<T> {
 }
 
 impl<T> OrHttpError<T> for Option<T> {
+    fn or_bad_request(self) -> Result<T> {
+        self.ok_or_else(|| RESPONSE_ERROR_BAD_REQUEST.clone().into())
+    }
+
     fn or_forbidden(self) -> Result<T> {
         self.ok_or_else(|| RESPONSE_ERROR_FORBIDDEN.clone().into())
     }
@@ -64,6 +71,13 @@ impl<T> OrHttpError<T> for Option<T> {
 }
 
 impl<T, E> OrHttpError<T> for Result<T, E> {
+    fn or_bad_request(self) -> Result<T> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(_) => Err(RESPONSE_ERROR_BAD_REQUEST.clone().into()),
+        }
+    }
+
     fn or_forbidden(self) -> Result<T> {
         match self {
             Ok(value) => Ok(value),
@@ -135,13 +149,9 @@ pub async fn get_user_avatar_image(
 ) -> Result<impl IntoResponse> {
     let size = params.size.unwrap_or(256);
 
-    if !(16..=512).contains(&size) || size & (size - 1) != 0 {
-        return Err(RESPONSE_ERROR_BAD_REQUEST.clone().into());
-    }
-
     let user = commands::get_user_by_id(id).await.or_not_found()?;
 
-    let avatar_image = user.avatar_image(size).or_internal_server_error()?;
+    let avatar_image = user.avatar_image(size).or_bad_request()?;
 
     let content_length = avatar_image.len();
     let body = Body::from(avatar_image);

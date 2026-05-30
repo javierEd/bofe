@@ -23,7 +23,7 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&card.board().await?);
+    let _ = notify_board_channel(&card.board().await?).await;
 
     Ok(true)
 }
@@ -94,7 +94,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&list.board().await.or_validation_errors()?);
+    let _ = notify_board_channel(&list.board().await.or_validation_errors()?).await;
 
     Ok(card)
 }
@@ -184,7 +184,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
 
     Ok(card)
 }
@@ -244,7 +244,7 @@ pub async fn update_card_list<'a>(
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
 
     Ok(updated_card)
 }
@@ -300,7 +300,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?);
+    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
 
     Ok(card)
 }

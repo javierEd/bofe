@@ -10,7 +10,7 @@ use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{UpdatePasswordParams, UpdateProfileParams, UserParams};
 use crate::{db_pool, jobs_storage};
 
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store};
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store, text_icon};
 
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
     let user = get_user_by_username_or_email(username_or_email).await?;
@@ -20,6 +20,26 @@ pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &st
     } else {
         Err(sqlx::Error::RowNotFound)
     }
+}
+
+pub fn get_user_avatar_image(user: &User<'_>, size: u16) -> anyhow::Result<Vec<u8>> {
+    if !(32..=512).contains(&size) || size & (size - 1) != 0 {
+        return Err(anyhow::anyhow!("Invalid avatar image size"));
+    }
+
+    let avatar_image_path = user.avatar_image_path(size);
+
+    if !avatar_image_path.exists() {
+        let avatar_image = text_icon(&user.username, size).expect("Could not create text icon");
+
+        std::fs::create_dir_all(avatar_image_path.parent().expect("Could not create storage dir"))?;
+
+        avatar_image
+            .save(&avatar_image_path)
+            .expect("Could not save avatar image");
+    }
+
+    Ok(std::fs::read(&avatar_image_path).expect("Could not read avatar image"))
 }
 
 #[concurrent_cached(

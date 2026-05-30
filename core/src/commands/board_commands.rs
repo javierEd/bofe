@@ -54,7 +54,7 @@ pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bo
 
     remove_board_cache(board).await;
 
-    let _ = notify_board_channel(board);
+    let _ = notify_board_channel(board).await;
 
     Ok(true)
 }
@@ -295,7 +295,7 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
 
     remove_board_cache(board).await;
 
-    let _ = notify_board_channel(&updated_board);
+    let _ = notify_board_channel(&updated_board).await;
 
     Ok(updated_board)
 }

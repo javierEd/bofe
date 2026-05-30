@@ -24,40 +24,14 @@ pub mod jobs;
 pub mod models;
 pub mod params;
 
-use crate::config::{DATABASE_CONFIG, MONITOR_CONFIG, PUBSUB_CONFIG};
+use crate::config::{DATABASE_CONFIG, IM_DATABASE_CONFIG, MONITOR_CONFIG};
 use crate::jobs::{NewSessionJob, NewUserJob, PasswordChangedJob};
 use crate::models::{Session, User};
 
 static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
-static PUBSUB_CLIENT: LazyLock<redis::Client> =
-    LazyLock::new(|| redis::Client::open(PUBSUB_CONFIG.redis_url.clone()).expect("Could not create Redis client"));
-
-fn block_on<T>(f: impl Future<Output = T>) -> T {
-    tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
-}
-
-async fn db_pool<'a>() -> &'a PgPool {
-    DB_POOL_CELL
-        .get_or_init(|| async {
-            PgPoolOptions::new()
-                .max_connections(DATABASE_CONFIG.max_connections)
-                .connect(&DATABASE_CONFIG.url)
-                .await
-                .expect("Could not create DB pool.")
-        })
-        .await
-}
-
-pub async fn jobs_storage<'a>() -> &'a JobsStorage {
-    JOBS_STORAGE_CELL
-        .get_or_init(|| async { JobsStorage::new().await })
-        .await
-}
-
-pub fn pubsub_client() -> redis::Client {
-    PUBSUB_CLIENT.clone()
-}
+static IM_DB_CLIENT: LazyLock<redis::Client> =
+    LazyLock::new(|| redis::Client::open(IM_DATABASE_CONFIG.url.clone()).expect("Could not get Redis client"));
 
 pub struct JobsStorage {
     pub new_session: RedisStorage<NewSessionJob>,
@@ -120,6 +94,33 @@ impl Default for Info {
             version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
+}
+
+fn block_on<T>(f: impl Future<Output = T>) -> T {
+    tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
+}
+
+async fn db_pool<'a>() -> &'a PgPool {
+    DB_POOL_CELL
+        .get_or_init(|| async {
+            PgPoolOptions::new()
+                .max_connections(DATABASE_CONFIG.max_connections)
+                .connect(&DATABASE_CONFIG.url)
+                .await
+                .expect("Could not create DB pool.")
+        })
+        .await
+}
+
+pub async fn jobs_storage<'a>() -> &'a JobsStorage {
+    JOBS_STORAGE_CELL
+        .get_or_init(|| async { JobsStorage::new().await })
+        .await
+}
+
+/// In-memory Database client
+fn im_db_client() -> redis::Client {
+    IM_DB_CLIENT.clone()
 }
 
 pub fn start_tracing_subscriber() {

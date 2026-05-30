@@ -20,18 +20,18 @@ use serde::de::DeserializeOwned;
 use validator::ValidationErrors;
 
 mod application_commands;
-mod board_channel_commands;
 mod board_commands;
 mod card_commands;
+mod im_database_commands;
 mod list_commands;
 mod member_commands;
 mod session_commands;
 mod user_commands;
 
 pub use application_commands::*;
-pub(crate) use board_channel_commands::*;
 pub(crate) use board_commands::*;
 pub(crate) use card_commands::*;
+pub(crate) use im_database_commands::*;
 pub(crate) use list_commands::*;
 pub(crate) use member_commands::*;
 pub use session_commands::*;
@@ -112,7 +112,7 @@ where
         .expect("Could not get redis cache")
 }
 
-pub(crate) fn text_icon(text: &str, size: u16) -> anyhow::Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+fn text_icon(text: &str, size: u16) -> anyhow::Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
     let text_initials = &text[0..2].to_uppercase();
     let size = size as u32;
 
