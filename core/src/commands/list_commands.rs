@@ -23,7 +23,7 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&list.board().await?);
+    let _ = notify_board_channel(&list.board().await?).await;
 
     Ok(true)
 }
@@ -118,7 +118,7 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&board);
+    let _ = notify_board_channel(&board).await;
 
     Ok(list)
 }
@@ -194,7 +194,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&board);
+    let _ = notify_board_channel(&board).await;
 
     Ok(list)
 }
@@ -250,7 +250,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&list.board().await.or_validation_errors()?);
+    let _ = notify_board_channel(&list.board().await.or_validation_errors()?).await;
 
     Ok(list)
 }
