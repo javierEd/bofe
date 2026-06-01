@@ -5,7 +5,7 @@ use crate::im_db_client;
 use crate::models::Board;
 
 pub async fn create_or_join_board_channel(board: &Board<'_>) -> RedisResult<PubSub> {
-    pubsub_subscribe(&format!("board.{}", board.id)).await
+    pubsub_subscribe(&format!("board:{}", board.id)).await
 }
 
 pub async fn notify_board_channel(board: &Board<'_>) -> RedisResult<usize> {
