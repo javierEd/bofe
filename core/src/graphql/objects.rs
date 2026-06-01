@@ -187,8 +187,8 @@ impl CardObject<'_> {
         Ok(self.0.list().await.map(ListObject)?)
     }
 
-    async fn content(&self) -> &str {
-        &self.0.content
+    async fn content(&self, max_length: Option<u16>, strip_markdown: Option<bool>) -> String {
+        self.0.content(max_length, strip_markdown)
     }
 
     async fn position(&self) -> i16 {

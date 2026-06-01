@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Display;
 use std::future::Future;
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -38,6 +39,7 @@ pub use session_commands::*;
 pub use user_commands::*;
 
 use crate::config::{CACHE_CONFIG, STORAGE_CONFIG};
+use crate::constants::STRIP_MARKDOWN_RULES;
 
 type ValidationResult<T = ()> = Result<T, ValidationErrors>;
 
@@ -80,6 +82,16 @@ fn get_available_space() -> ByteSize {
     let stats = uucore::fsext::statfs(STORAGE_CONFIG.path.as_os_str()).expect("Could not get storage stats");
 
     ByteSize(stats.f_bavail * stats.f_bsize as u64)
+}
+
+pub(crate) fn markdown_to_text(input: &str) -> String {
+    let mut text = Cow::Borrowed(input);
+
+    for (regex, replacement) in STRIP_MARKDOWN_RULES.iter() {
+        text = Cow::Owned(regex.replace_all(&text, *replacement).into_owned());
+    }
+
+    text.into_owned()
 }
 
 fn encrypt_password(value: &str) -> String {

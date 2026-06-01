@@ -27,3 +27,27 @@ pub static ERROR_PASSWORD_MUST_CHANGE: LazyLock<ValidationError> = LazyLock::new
 
 pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnum:]]+(?:-[[:alnum:]]+)*\z").unwrap());
 pub static REGEX_USERNAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[-_.]?([[:alnum:]]+[-_.]?)+\z").unwrap());
+
+pub static STRIP_MARKDOWN_RULES: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
+    vec![
+        // Headers (e.g., # Header) -> completely strip syntax
+        (Regex::new(r"(?m)^#{1,6}\s+").unwrap(), ""),
+        // Fenced code blocks (```rust ... ```) -> remove fences, keep code context
+        (Regex::new(r"```[a-zA-Z]*\n?([\s\S]*?)```").unwrap(), "$1"),
+        // Inline code blocks (`code`) -> remove backticks
+        (Regex::new(r"`([^`]+)`").unwrap(), "$1"),
+        // Bold / Italics (**text**, __text__, *text*, _text_) -> keep content
+        (Regex::new(r"\*\*([^*]+)\*\*").unwrap(), "$1"),
+        (Regex::new(r"__([^_]+)__").unwrap(), "$1"),
+        (Regex::new(r"\*([^*]+)\*").unwrap(), "$1"),
+        (Regex::new(r"_([^_]+)_").unwrap(), "$1"),
+        // Images (![alt](url)) -> remove completely
+        (Regex::new(r"!\[.*?\]\(.*?\)").unwrap(), ""),
+        // Links ([text](url)) -> preserve link text only
+        (Regex::new(r"\[(.*?)\]\(.*?\)").unwrap(), "$1"),
+        // Blockquotes (e.g., > Quote) -> remove leading > arrow
+        (Regex::new(r"(?m)^>\s+").unwrap(), ""),
+        // Horizontal Rules (---, ***, ___) -> remove line completely
+        (Regex::new(r"(?m)^[-*_]{3,}\s*$").unwrap(), ""),
+    ]
+});

@@ -134,6 +134,26 @@ impl Card<'_> {
         self.list().await?.board().await
     }
 
+    pub fn content(&self, max_length: Option<u16>, strip_markdown: Option<bool>) -> String {
+        if max_length.is_none() && strip_markdown.is_none() {
+            return self.content.to_string();
+        }
+
+        let content = if strip_markdown.unwrap_or(false) {
+            commands::markdown_to_text(&self.content)
+        } else {
+            self.content.to_string()
+        };
+
+        if let Some(max_length) = max_length
+            && (max_length as usize) < content.len()
+        {
+            content[..max_length as usize].to_owned()
+        } else {
+            content
+        }
+    }
+
     /// Returns true if the user can edit the card
     ///
     /// Only the owner of the card can edit the card
