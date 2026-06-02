@@ -27,14 +27,15 @@ async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &st
     .is_ok()
 }
 
-async fn board_slug_exists(board: Option<&Board<'_>>, slug: &str) -> bool {
+async fn board_slug_exists(user: &User<'_>, board: Option<&Board<'_>>, slug: &str) -> bool {
     let db_pool = db_pool().await;
     let board_id = board.map(|b| b.id);
 
     sqlx::query!(
-        "SELECT id FROM boards WHERE id != $1 AND LOWER(slug) = LOWER($2) LIMIT 1",
-        board_id, // $1
-        slug      // $2
+        "SELECT id FROM boards WHERE user_id = $1 AND id != $2 AND LOWER(slug) = LOWER($3) LIMIT 1",
+        user.id,  // $1
+        board_id, // $2
+        slug      // $3
     )
     .fetch_one(db_pool)
     .await
@@ -145,7 +146,7 @@ pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> Validatio
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
     }
 
-    if board_slug_exists(None, &slug).await {
+    if board_slug_exists(user, None, &slug).await {
         validation_errors.add("slug", ERROR_ALREADY_EXISTS.clone());
     }
 
@@ -261,7 +262,7 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
         validation_errors.add("name", ERROR_ALREADY_EXISTS.clone());
     }
 
-    if board_slug_exists(Some(board), &slug).await {
+    if board_slug_exists(user, Some(board), &slug).await {
         validation_errors.add("slug", ERROR_ALREADY_EXISTS.clone());
     }
 

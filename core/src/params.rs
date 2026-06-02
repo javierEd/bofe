@@ -3,7 +3,7 @@ use uuid::Uuid;
 use validator::{Validate, ValidationError};
 
 use crate::commands;
-use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID, REGEX_SLUG, REGEX_USERNAME};
+use crate::constants::{BLACKLISTED_USERNAMES, ERROR_ALREADY_EXISTS, ERROR_IS_INVALID, REGEX_SLUG, REGEX_USERNAME};
 use crate::enums::{BoardVisibility, CountryCode};
 
 fn validate_birthdate(value: &NaiveDate) -> Result<(), ValidationError> {
@@ -39,7 +39,7 @@ fn validate_slug(value: &str) -> Result<(), ValidationError> {
 }
 
 fn validate_username(value: &str) -> Result<(), ValidationError> {
-    if Uuid::try_parse(value).is_ok() {
+    if Uuid::try_parse(value).is_ok() || BLACKLISTED_USERNAMES.contains(&value.to_lowercase().as_str()) {
         return Err(ERROR_IS_INVALID.clone());
     }
 

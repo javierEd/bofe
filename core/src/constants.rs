@@ -4,6 +4,35 @@ use std::sync::LazyLock;
 use regex::Regex;
 use validator::ValidationError;
 
+pub const BLACKLISTED_USERNAMES: [&str; 26] = [
+    "admin",
+    "api",
+    "board",
+    "boards",
+    "card",
+    "card",
+    "edit",
+    "email",
+    "group",
+    "groups",
+    "list",
+    "lists",
+    "login",
+    "logout",
+    "member",
+    "members",
+    "new",
+    "profile",
+    "register",
+    "reset-password",
+    "reset_password",
+    "reset.password",
+    "search",
+    "settings",
+    "user",
+    "users",
+];
+
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
