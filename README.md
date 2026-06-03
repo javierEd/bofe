@@ -1,4 +1,6 @@
-<h1 align="center"><img height="32" valign="middle" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
+<h1 align="center">
+  <img height="32" valign="middle" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b>
+</h1>
 
 <p align="center">Kanban style boards.</p>
 
@@ -6,18 +8,23 @@
   <a href="https://github.com/javierEd/bofe/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/javierEd/bofe" alt="license"/>
   </a>
+  &nbsp;
   <a href="https://github.com/javierEd/bofe/commits/main">
     <img src="https://img.shields.io/github/last-commit/javierEd/bofe" alt="last commit"/>
   </a>
+  &nbsp;
   <a href="https://github.com/javierEd/bofe/actions/workflows/ci.yaml">
     <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?label=CI" alt="CI"/>
   </a>
+  &nbsp;
   <a href="https://github.com/javierEd/bofe/actions/workflows/cd.yaml">
     <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?label=CD" alt="CD"/>
   </a>
+  &nbsp;
   <a href="https://github.com/javierEd/bofe/network/dependencies">
     <img src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe" alt="dependencies"/>
   </a>
+  &nbsp;
   <a href="https://github.com/javierEd/bofe/releases/latest">
     <img src="https://img.shields.io/github/v/release/javierEd/bofe?include_prereleases" alt="release"/>
   </a>
