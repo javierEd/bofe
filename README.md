@@ -1,29 +1,27 @@
-<div align="center">
-  <h1><img height="32" valign="middle" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
+<h1 align="center"><img height="32" valign="middle" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
 
-  <p>Kanban style boards.</p>
+<p align="center">Kanban style boards.</p>
 
-  <p align="center">
-    <a href="https://github.com/javierEd/bofe/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/javierEd/bofe" alt="license"/>
-    </a>
-    <a href="https://github.com/javierEd/bofe/commits/main">
-      <img src="https://img.shields.io/github/last-commit/javierEd/bofe" alt="last commit"/>
-    </a>
-    <a href="https://github.com/javierEd/bofe/actions/workflows/ci.yaml">
-      <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?label=CI" alt="CI"/>
-    </a>
-    <a href="https://github.com/javierEd/bofe/actions/workflows/cd.yaml">
-      <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?label=CD" alt="CD"/>
-    </a>
-    <a href="https://github.com/javierEd/bofe/network/dependencies">
-      <img src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe" alt="dependencies"/>
-    </a>
-    <a href="https://github.com/javierEd/bofe/releases/latest">
-      <img src="https://img.shields.io/github/v/release/javierEd/bofe?include_prereleases" alt="release"/>
-    </a>
-  </p>
-</div>
+<p align="center">
+  <a href="https://github.com/javierEd/bofe/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/javierEd/bofe" alt="license"/>
+  </a>
+  <a href="https://github.com/javierEd/bofe/commits/main">
+    <img src="https://img.shields.io/github/last-commit/javierEd/bofe" alt="last commit"/>
+  </a>
+  <a href="https://github.com/javierEd/bofe/actions/workflows/ci.yaml">
+    <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?label=CI" alt="CI"/>
+  </a>
+  <a href="https://github.com/javierEd/bofe/actions/workflows/cd.yaml">
+    <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?label=CD" alt="CD"/>
+  </a>
+  <a href="https://github.com/javierEd/bofe/network/dependencies">
+    <img src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe" alt="dependencies"/>
+  </a>
+  <a href="https://github.com/javierEd/bofe/releases/latest">
+    <img src="https://img.shields.io/github/v/release/javierEd/bofe?include_prereleases" alt="release"/>
+  </a>
+</p>
 
 Bofe is the perfect solution to create and manage Kanban boards.
 
@@ -31,9 +29,9 @@ This is the backend of the project. To see the the frontend (mobile and web) app
 
 ## Features
 
-* Boards: Create boards and manage boards.
-* Lists: Add, rename and reorder lists.
-* Cards: Write cards and move then between lists.
+- Boards: Create boards and manage boards.
+- Lists: Add, rename and reorder lists.
+- Cards: Write cards and move then between lists.
 
 ## Build Requirements
 
