@@ -1,6 +1,39 @@
-# Bofe
+<div align="center">
+  <h1><img height="32" valign="middle" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
 
-Kanban style boards.
+  <p>Kanban style boards.</p>
+
+  <p align="center">
+    <a href="https://github.com/javierEd/bofe/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/javierEd/bofe" alt="license"/>
+    </a>
+    <a href="https://github.com/javierEd/bofe/commits/main">
+      <img src="https://img.shields.io/github/last-commit/javierEd/bofe" alt="last commit"/>
+    </a>
+    <a href="https://github.com/javierEd/bofe/actions/workflows/ci.yaml">
+      <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?label=CI" alt="CI"/>
+    </a>
+    <a href="https://github.com/javierEd/bofe/actions/workflows/cd.yaml">
+      <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?label=CD" alt="CD"/>
+    </a>
+    <a href="https://github.com/javierEd/bofe/network/dependencies">
+      <img src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe" alt="dependencies"/>
+    </a>
+    <a href="https://github.com/javierEd/bofe/releases/latest">
+      <img src="https://img.shields.io/github/v/release/javierEd/bofe?include_prereleases" alt="release"/>
+    </a>
+  </p>
+</div>
+
+Bofe is the perfect solution to create and manage Kanban boards.
+
+This is the backend of the project. To see the the frontend (mobile and web) application, go to [github.com/javierEd/bofe_app](https://github.com/javierEd/bofe_app).
+
+## Features
+
+* Boards: Create boards and manage boards.
+* Lists: Add, rename and reorder lists.
+* Cards: Write cards and move then between lists.
 
 ## Build Requirements
 
@@ -40,3 +73,7 @@ Kanban style boards.
 | STORAGE_FONT_PATH            | String  | /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf | api             |
 | STORAGE_PATH                 | String  | ./storage/                                      | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                  | api             |
+
+## License
+
+This project is open-source and available under the GNU Affero General Public License v3.0 (AGPL v3). Please see the [license file](https://github.com/javierEd/bofe/blob/main/LICENSE) for more information.
