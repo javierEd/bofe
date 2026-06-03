@@ -52,7 +52,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-uucore = { version = "0.8.0", features = ["fsext"] }
+uucore = { version = "0.9.0", features = ["fsext"] }
 url.workspace = true
 uuid.workspace = true
 validator = { version = "0.20.0", features = ["derive"] }
