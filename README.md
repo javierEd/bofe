@@ -1,4 +1,4 @@
-<h1 align="center"><img height="32" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
+<h1 align="center"><img height="36" src="https://about.bofe.app/icon.svg" /> <b>Bofe</b></h1>
 
 <p align="center">Kanban style boards.</p>
 
