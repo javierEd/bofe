@@ -1,5 +1,5 @@
 use async_graphql::dynamic::indexmap::IndexMap;
-use async_graphql::{Context, Error, ErrorExtensions, Name, Object, Result, Value};
+use async_graphql::{Context, Error, ErrorExtensions, InputType, Name, Object, Result, Value};
 use convert_case::{Case, Casing};
 use uuid::Uuid;
 use validator::ValidationErrors;
@@ -7,7 +7,7 @@ use validator::ValidationErrors;
 use crate::commands;
 use crate::graphql::CustomContext;
 use crate::graphql::guards::{GuestGuard, UserGuard};
-use crate::graphql::objects::{BoardObject, CardObject, ListObject, MemberObject, SessionObject, UserObject};
+use crate::graphql::objects::*;
 use crate::params::*;
 
 pub struct MutationRoot;
@@ -17,11 +17,18 @@ fn to_mutation_error(message: &str, errors: ValidationErrors) -> Error {
         errors
             .field_errors()
             .iter()
-            .map(|(field, error)| {
+            .map(|(field, errors)| {
+                let error = &errors[0];
                 let mut details = IndexMap::new();
+                let mut details_args = IndexMap::new();
 
-                details.insert(Name::new("code"), Value::from(error[0].code.clone()));
-                details.insert(Name::new("message"), Value::from(error[0].message.clone()));
+                for (key, value) in error.params.iter() {
+                    details_args.insert(Name::new(key.to_case(Case::Camel)), value.to_value());
+                }
+
+                details.insert(Name::new("code"), Value::from(error.code.clone()));
+                details.insert(Name::new("message"), Value::from(error.message.clone()));
+                details.insert(Name::new("args"), Value::Object(details_args));
 
                 (Name::new(field.to_case(Case::Camel)), Value::from(details))
             })
@@ -51,6 +58,16 @@ impl MutationRoot {
             .await
             .map(CardObject)
             .map_err(|errors| to_mutation_error("Failed to create card", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn create_label(&self, ctx: &Context<'_>, params: LabelParams) -> Result<LabelObject<'_>> {
+        let user = ctx.user();
+
+        commands::insert_label(user, params)
+            .await
+            .map(LabelObject)
+            .map_err(|errors| to_mutation_error("Failed to create label", errors))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -110,6 +127,16 @@ impl MutationRoot {
         commands::delete_card(user, &card)
             .await
             .map_err(|_| to_mutation_error("Failed to delete card", ValidationErrors::new()))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn delete_label(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        let user = ctx.user();
+        let label = commands::get_visible_label_by_id(id, Some(user)).await?;
+
+        commands::delete_label(user, &label)
+            .await
+            .map_err(|_| to_mutation_error("Failed to delete label", ValidationErrors::new()))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -200,6 +227,17 @@ impl MutationRoot {
             .await
             .map(CardObject)
             .map_err(|errors| to_mutation_error("Failed to update card position", errors))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn update_label(&self, ctx: &Context<'_>, id: Uuid, params: UpdateLabelParams) -> Result<LabelObject<'_>> {
+        let user = ctx.user();
+        let label = commands::get_visible_label_by_id(id, Some(user)).await?;
+
+        commands::update_label(user, &label, params)
+            .await
+            .map(LabelObject)
+            .map_err(|errors| to_mutation_error("Failed to update label", errors))
     }
 
     #[graphql(guard = "UserGuard")]
