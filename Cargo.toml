@@ -12,7 +12,7 @@ repository = "https://github.com/javierEd/bofe"
 [workspace.dependencies]
 apalis = "1.0.0-rc.9"
 async-graphql = "8.0.0-rc.5"
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 envconfig = "0.11.1"
 serde = "1.0.228"
 serde_json = "1.0.150"
