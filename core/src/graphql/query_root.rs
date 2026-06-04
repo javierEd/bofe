@@ -3,7 +3,7 @@ use async_graphql::{Context, ID, Object, Result};
 use uuid::Uuid;
 
 use crate::graphql::guards::UserGuard;
-use crate::graphql::objects::{BoardObject, CardObject, InfoObject, ListObject, UserObject};
+use crate::graphql::objects::{BoardObject, CardObject, InfoObject, LabelObject, ListObject, UserObject};
 use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
@@ -72,6 +72,13 @@ impl QueryRoot {
 
     async fn info(&self) -> InfoObject {
         InfoObject(Info::default())
+    }
+
+    async fn label(&self, ctx: &Context<'_>, id: ID) -> Result<Option<LabelObject<'_>>> {
+        let id = id.try_into_uuid()?;
+        let user = ctx.user_opt();
+
+        Ok(commands::get_visible_label_by_id(id, user).await.map(LabelObject).ok())
     }
 
     async fn list(&self, ctx: &Context<'_>, id: ID) -> Result<Option<ListObject<'_>>> {

@@ -36,6 +36,7 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
+pub const CACHE_PREFIX_GET_LABEL_BY_ID: &str = "get_label_by_id";
 pub const CACHE_PREFIX_GET_MEMBER: &str = "get_member";
 pub const CACHE_PREFIX_GET_MEMBER_BY_ID: &str = "get_member_by_id";
 pub const CACHE_PREFIX_GET_SESSION_BY_ID: &str = "get_session_by_id";
@@ -48,12 +49,15 @@ pub const CACHE_PREFIX_GET_USER_ID_BY_USERNAME: &str = "get_user_id_by_username"
 
 pub static ERROR_ALREADY_EXISTS: LazyLock<ValidationError> =
     LazyLock::new(|| ValidationError::new("already-exists").with_message(Cow::Borrowed("Already exists")));
+pub static ERROR_CANT_BE_BLANK: LazyLock<ValidationError> =
+    LazyLock::new(|| ValidationError::new("cant-be-blank").with_message(Cow::Borrowed("Can't be blank")));
 pub static ERROR_IS_INVALID: LazyLock<ValidationError> =
     LazyLock::new(|| ValidationError::new("invalid").with_message(Cow::Borrowed("Is invalid")));
 pub static ERROR_PASSWORD_MUST_CHANGE: LazyLock<ValidationError> = LazyLock::new(|| {
     ValidationError::new("password-must-change").with_message(Cow::Borrowed("Must be different from current password"))
 });
 
+pub static REGEX_COLOR_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A#[[:xdigit:]]{3,6}\z").unwrap());
 pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnum:]]+(?:-[[:alnum:]]+)*\z").unwrap());
 pub static REGEX_USERNAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[-_.]?([[:alnum:]]+[-_.]?)+\z").unwrap());
 

@@ -3,7 +3,7 @@ use uuid::Uuid;
 use validator::{Validate, ValidationError};
 
 use crate::commands;
-use crate::constants::{BLACKLISTED_USERNAMES, ERROR_ALREADY_EXISTS, ERROR_IS_INVALID, REGEX_SLUG, REGEX_USERNAME};
+use crate::constants::*;
 use crate::enums::{BoardVisibility, CountryCode};
 
 fn validate_birthdate(value: &NaiveDate) -> Result<(), ValidationError> {
@@ -25,6 +25,14 @@ fn validate_email(value: &str) -> Result<(), ValidationError> {
 fn validate_expires_at(value: &NaiveDate) -> Result<(), ValidationError> {
     if *value <= Utc::now().date_naive() {
         return Err(ERROR_IS_INVALID.clone());
+    }
+
+    Ok(())
+}
+
+fn validate_presence(value: &str) -> Result<(), ValidationError> {
+    if value.trim().is_empty() {
+        return Err(ERROR_CANT_BE_BLANK.clone());
     }
 
     Ok(())
@@ -52,7 +60,10 @@ fn validate_username(value: &str) -> Result<(), ValidationError> {
 
 #[derive(Validate)]
 pub struct ApplicationParams {
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub name: String,
     #[validate(custom(function = "validate_expires_at"))]
     pub expires_at: Option<NaiveDate>,
@@ -61,10 +72,13 @@ pub struct ApplicationParams {
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct BoardParams {
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub name: String,
     #[validate(
-        length(min = 1, max = 255, message = "Can't be blank"),
+        length(min = 1, max = 255, message = "Must be between 1 and 255 characters"),
         regex(path = *REGEX_SLUG, message = "Is invalid"),
         custom(function = "validate_slug")
     )]
@@ -77,15 +91,37 @@ pub(crate) struct BoardParams {
 #[derive(Validate)]
 pub(crate) struct CardParams {
     pub list_id: Uuid,
-    #[validate(length(min = 1, max = 1024, message = "Can't be blank"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 1024, message = "Must have at most 1024 characters")
+    )]
     pub content: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
+pub(crate) struct LabelParams {
+    pub board_id: Uuid,
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
+    pub name: String,
+    #[validate(
+        length(min = 4, max = 7, message = "Must have at least 4 characters"),
+        regex(path = *REGEX_COLOR_CODE, message = "Is invalid")
+    )]
+    pub color_code: String,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct ListParams {
     pub board_id: Uuid,
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub name: String,
 }
 
@@ -99,16 +135,35 @@ pub(crate) struct MemberParams {
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct SessionParams {
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub username_or_email: String,
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[cfg_attr(feature = "graphql", graphql(secret))]
+    #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub password: String,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub(crate) struct UpdateLabelParams {
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
+    pub name: String,
+    #[validate(
+        length(min = 4, max = 7, message = "Must have at least 4 characters"),
+        regex(path = *REGEX_COLOR_CODE, message = "Is invalid")
+    )]
+    pub color_code: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub(crate) struct UpdateListParams {
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub name: String,
 }
 
@@ -120,18 +175,26 @@ pub(crate) struct UpdateMemberParams {
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct UpdatePasswordParams {
-    #[validate(length(min = 1, max = 255, message = "Can't be blank"))]
+    #[cfg_attr(feature = "graphql", graphql(secret))]
+    #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub current_password: String,
-    #[validate(length(min = 6, max = 128, message = "Must have at least 6 characters"))]
+    #[cfg_attr(feature = "graphql", graphql(secret))]
+    #[validate(length(min = 6, max = 255, message = "Must have between 6 and 255 characters"))]
     pub new_password: String,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub struct UpdateProfileParams {
-    #[validate(length(min = 2, max = 255, message = "Must have at least 2 characters"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub display_name: String,
-    #[validate(length(min = 2, max = 255, message = "Must have at least 2 characters"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub full_name: String,
     #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
     pub birthdate: Option<NaiveDate>,
@@ -142,20 +205,24 @@ pub struct UpdateProfileParams {
 #[derive(Validate)]
 pub(crate) struct UserParams {
     #[validate(
-        length(min = 3, max = 16, message = "Must have at least 3 characters"),
+        length(min = 3, max = 16, message = "Must have between 3 and 16 characters"),
         regex(path = *REGEX_USERNAME, message = "Is invalid"),
         custom(function = "validate_username")
     )]
     pub username: String,
     #[validate(
-        length(min = 5, max = 255, message = "Must have at least 5 characters"),
+        length(min = 5, max = 255, message = "Must have between 5 and 255 characters"),
         email(message = "Is invalid"),
         custom(function = "validate_email")
     )]
     pub email: String,
-    #[validate(length(min = 6, max = 128, message = "Must have at least 6 characters"))]
+    #[cfg_attr(feature = "graphql", graphql(secret))]
+    #[validate(length(min = 6, max = 255, message = "Must have between 6 and 255 characters"))]
     pub password: String,
-    #[validate(length(min = 2, max = 255, message = "Must have at least 2 characters"))]
+    #[validate(
+        custom(function = "validate_presence"),
+        length(max = 255, message = "Must have at most 255 characters")
+    )]
     pub full_name: String,
     #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
     pub birthdate: Option<NaiveDate>,
