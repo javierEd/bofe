@@ -4,28 +4,49 @@
 
 <p align="center">
   <a href="https://github.com/javierEd/bofe/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/javierEd/bofe?style=flat-square" alt="license"/></a>
+    <img
+      src="https://img.shields.io/github/license/javierEd/bofe?logo=open-source-initiative&logoColor=white&style=flat-square"
+      alt="license"
+    /></a>
   <a href="https://github.com/javierEd/bofe/commits/main">
-    <img src="https://img.shields.io/github/last-commit/javierEd/bofe?style=flat-square" alt="last commit"/></a>
+    <img
+      src="https://img.shields.io/github/last-commit/javierEd/bofe?logo=git&logoColor=white&style=flat-square"
+      alt="last commit"
+    /></a>
   <a href="https://github.com/javierEd/bofe/actions/workflows/ci.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?style=flat-square&label=CI" alt="CI"/></a>
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/ci.yaml?label=CI&logo=github&style=flat-square"
+      alt="CI"
+    /></a>
   <a href="https://github.com/javierEd/bofe/actions/workflows/cd.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?style=flat-square&label=CD" alt="CD"/></a>
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/javierEd/bofe/cd.yaml?label=CD&logo=github&style=flat-square"
+      alt="CD"
+    /></a>
   <a href="https://github.com/javierEd/bofe/network/dependencies">
-    <img src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe?style=flat-square" alt="dependencies"/></a>
+    <img
+      src="https://img.shields.io/deps-rs/repo/github/javierEd/bofe?logo=dependabot&logoColor=white&style=flat-square"
+      alt="dependencies"
+    /></a>
   <a href="https://github.com/javierEd/bofe/releases/latest">
-    <img src="https://img.shields.io/github/v/release/javierEd/bofe?style=flat-square&include_prereleases" alt="release"/></a>
+    <img
+      src="https://img.shields.io/github/v/release/javierEd/bofe?include_prereleases&logo=rocket&logoColor=white&style=flat-square"
+      alt="release"
+    /></a>
 </p>
 
 Bofe is the perfect solution to create and manage Kanban boards.
 
-This is the backend of the project. To see the the frontend (mobile and web) application, go to [github.com/javierEd/bofe_app](https://github.com/javierEd/bofe_app).
+> [!NOTE]
+> This repository contains the backend of the project.
+> - To see the frontend (mobile/web) application, go to [github.com/javierEd/bofe_app](https://github.com/javierEd/bofe_app).
 
 ## Features
 
 - Boards: Create boards and manage boards.
 - Lists: Add, rename and reorder lists.
 - Cards: Write cards and move then between lists.
+- Labels: Create labels and assign them to cards.
 
 ## Build Requirements
 
@@ -68,4 +89,4 @@ This is the backend of the project. To see the the frontend (mobile and web) app
 
 ## License
 
-This project is open-source and available under the GNU Affero General Public License v3.0 (AGPL v3). Please see the [license file](https://github.com/javierEd/bofe/blob/main/LICENSE) for more information.
+This project is open-source and available under the GNU Affero General Public License v3.0 (AGPL v3). Please see the [LICENSE](https://github.com/javierEd/bofe/blob/main/LICENSE) file for more information.
