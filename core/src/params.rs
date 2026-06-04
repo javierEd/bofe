@@ -137,6 +137,7 @@ pub(crate) struct MemberParams {
 pub(crate) struct SessionParams {
     #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub username_or_email: String,
+    #[cfg_attr(feature = "graphql", graphql(secret))]
     #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub password: String,
 }
@@ -174,8 +175,10 @@ pub(crate) struct UpdateMemberParams {
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
 pub(crate) struct UpdatePasswordParams {
+    #[cfg_attr(feature = "graphql", graphql(secret))]
     #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub current_password: String,
+    #[cfg_attr(feature = "graphql", graphql(secret))]
     #[validate(length(min = 6, max = 255, message = "Must have between 6 and 255 characters"))]
     pub new_password: String,
 }
@@ -213,6 +216,7 @@ pub(crate) struct UserParams {
         custom(function = "validate_email")
     )]
     pub email: String,
+    #[cfg_attr(feature = "graphql", graphql(secret))]
     #[validate(length(min = 6, max = 255, message = "Must have between 6 and 255 characters"))]
     pub password: String,
     #[validate(
