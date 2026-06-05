@@ -178,6 +178,13 @@ impl Member {
     pub async fn is_editable(&self, user: &User<'_>) -> sqlx::Result<bool> {
         Ok(self.board().await?.is_editable(user))
     }
+
+    /// Returns true if the user can remove the member
+    ///
+    /// Only the owner of the board or the same use can remove the member
+    pub async fn is_removable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.user_id == user.id || self.is_editable(user).await?)
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]

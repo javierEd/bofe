@@ -213,6 +213,16 @@ impl MemberObject {
         }
     }
 
+    async fn is_removable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_removable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     async fn created_at(&self) -> DateTime<Utc> {
         self.0.created_at
     }
