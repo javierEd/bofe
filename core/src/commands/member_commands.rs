@@ -14,7 +14,7 @@ use crate::params::UpdateMemberParams;
 use super::*;
 
 pub async fn delete_member(user: &User<'_>, member: &Member) -> sqlx::Result<bool> {
-    if !member.is_editable(user).await? {
+    if !member.is_removable(user).await? {
         return Err(sqlx::Error::RowNotFound);
     }
 
