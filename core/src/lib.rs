@@ -14,6 +14,7 @@ use tracing_subscriber::{EnvFilter, Layer};
 mod config;
 mod constants;
 mod pagination;
+mod scalars;
 
 #[cfg(feature = "graphql")]
 pub mod graphql;

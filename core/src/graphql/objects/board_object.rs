@@ -67,6 +67,14 @@ impl BoardObject<'_> {
         .await
     }
 
+    async fn all_labels(&self) -> Result<Vec<LabelObject<'_>>> {
+        Ok(commands::get_all_labels(&self.0)
+            .await?
+            .into_iter()
+            .map(LabelObject)
+            .collect())
+    }
+
     async fn lists(
         &self,
         after: Option<Uuid>,
@@ -134,6 +142,16 @@ impl BoardObject<'_> {
     async fn can_create_card(&self, ctx: &Context<'_>) -> bool {
         if let Some(user) = ctx.user_opt()
             && self.0.can_create_card(user).await
+        {
+            true
+        } else {
+            false
+        }
+    }
+
+    async fn can_create_label(&self, ctx: &Context<'_>) -> bool {
+        if let Some(user) = ctx.user_opt()
+            && self.0.can_create_label(user)
         {
             true
         } else {
