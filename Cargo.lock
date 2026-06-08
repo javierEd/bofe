@@ -788,6 +788,7 @@ dependencies = [
  "chrono",
  "convert_case",
  "envconfig",
+ "futures",
  "futures-util",
  "image",
  "imageproc",

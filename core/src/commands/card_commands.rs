@@ -7,7 +7,7 @@ use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::CardParams;
 
-use super::{OrValidationErrors, ValidationResult, get_visible_list_by_id, notify_board_channel};
+use super::*;
 
 pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<bool> {
     if !card.is_editable(user) {
@@ -69,13 +69,17 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let list = get_visible_list_by_id(params.list_id, Some(user))
         .await
-        .or_validation_errors()?;
+        .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
 
     if !list.can_create_card(user).await.or_validation_errors()? {
         validation_errors.add("list_id", ERROR_IS_INVALID.clone());
 
         return Err(validation_errors);
     }
+
+    let labels = get_visible_labels_by_ids(&params.label_ids, Some(user))
+        .await
+        .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
     let content = params.content.trim();
     let position = suggest_card_position(&list).await;
@@ -93,6 +97,8 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .fetch_one(db_pool)
     .await
     .or_validation_errors()?;
+
+    let _ = insert_card_labels(&card, &labels).await;
 
     let _ = notify_board_channel(&list.board().await.or_validation_errors()?).await;
 
@@ -154,7 +160,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
         let list = card.list().await.or_validation_errors()?;
         let new_list = get_visible_list_by_id(params.list_id, Some(user))
             .await
-            .or_validation_errors()?;
+            .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
 
         if !card.is_movable(user).await.or_validation_errors()?
             || !new_list.can_move_card(user).await.or_validation_errors()?
@@ -167,6 +173,10 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
 
         position = suggest_card_position(&new_list).await;
     }
+
+    let labels = get_visible_labels_by_ids(&params.label_ids, Some(user))
+        .await
+        .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
     let content = params.content.trim();
 
@@ -183,6 +193,8 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
     .fetch_one(db_pool)
     .await
     .or_validation_errors()?;
+
+    let _ = update_card_labels(&card, &labels).await;
 
     let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
 

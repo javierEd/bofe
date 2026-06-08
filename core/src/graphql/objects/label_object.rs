@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 
 use crate::graphql::CustomContext;
 use crate::models::Label;
+use crate::scalars::ColorCode;
+
+use super::BoardObject;
 
 pub struct LabelObject<'a>(pub Label<'a>);
 
@@ -12,11 +15,15 @@ impl LabelObject<'_> {
         self.0.id.into()
     }
 
+    async fn board(&self) -> Result<BoardObject<'_>> {
+        Ok(self.0.board().await.map(BoardObject)?)
+    }
+
     async fn name(&self) -> &str {
         &self.0.name
     }
 
-    async fn color_code(&self) -> &str {
+    async fn color_code(&self) -> &ColorCode {
         &self.0.color_code
     }
 

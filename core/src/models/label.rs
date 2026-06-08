@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::commands;
+use crate::scalars::ColorCode;
 
 use super::{Board, User};
 
@@ -15,7 +16,7 @@ pub struct Label<'a> {
     pub board_id: Uuid,
     pub user_id: Uuid,
     pub name: Cow<'a, str>,
-    pub color_code: Cow<'a, str>,
+    pub color_code: ColorCode,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }

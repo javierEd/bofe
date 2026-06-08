@@ -32,6 +32,18 @@ pub(crate) async fn delete_label(user: &User<'_>, label: &Label<'_>) -> sqlx::Re
     Ok(true)
 }
 
+pub async fn get_all_labels<'a>(board: &Board<'a>) -> sqlx::Result<Vec<Label<'a>>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Label,
+        "SELECT * FROM labels WHERE board_id = $1 ORDER BY name ASC",
+        board.id, // $1
+    )
+    .fetch_all(db_pool)
+    .await
+}
+
 async fn label_name_exists(board: &Board<'_>, label: Option<&Label<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let label_id = label.map(|l| l.id);
@@ -74,6 +86,13 @@ pub async fn get_visible_label_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
     }
 }
 
+pub async fn get_visible_labels_by_ids<'a>(
+    ids: &[Uuid],
+    target_user: Option<&User<'_>>,
+) -> sqlx::Result<Vec<Label<'a>>> {
+    futures::future::try_join_all(ids.iter().map(|id| get_visible_label_by_id(*id, target_user))).await
+}
+
 pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> ValidationResult<Label<'a>> {
     params.validate()?;
 
@@ -104,10 +123,10 @@ pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> Validatio
     let label = sqlx::query_as!(
         Label,
         "INSERT INTO labels (board_id, user_id, name, color_code) VALUES ($1, $2, $3, $4) RETURNING *",
-        board.id,          // $1
-        user.id,           // $2
-        name,              // $3
-        params.color_code, // $4
+        board.id,               // $1
+        user.id,                // $2
+        name,                   // $3
+        params.color_code as _, // $4
     )
     .fetch_one(db_pool)
     .await
@@ -178,9 +197,10 @@ pub async fn update_label<'a>(
 
     let updated_label = sqlx::query_as!(
         Label,
-        "UPDATE labels SET name = $2 WHERE id = $1 RETURNING *",
-        label.id, // $1
-        name,     // $2
+        "UPDATE labels SET name = $2, color_code = $3 WHERE id = $1 RETURNING *",
+        label.id,               // $1
+        name,                   // $2
+        params.color_code as _, // $3
     )
     .fetch_one(db_pool)
     .await

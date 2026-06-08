@@ -18,11 +18,12 @@ use rand::distr::uniform::SampleRange;
 use rand::{RngExt, rng};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use validator::ValidationErrors;
+use validator::{ValidationError, ValidationErrors};
 
 mod application_commands;
 mod board_commands;
 mod card_commands;
+mod card_label_commands;
 mod im_database_commands;
 mod label_commands;
 mod list_commands;
@@ -33,6 +34,7 @@ mod user_commands;
 pub use application_commands::*;
 pub(crate) use board_commands::*;
 pub(crate) use card_commands::*;
+pub(crate) use card_label_commands::*;
 pub(crate) use im_database_commands::*;
 pub(crate) use label_commands::*;
 pub(crate) use list_commands::*;
@@ -65,17 +67,35 @@ where
 
 trait OrValidationErrors<T> {
     fn or_validation_errors(self) -> ValidationResult<T>;
+
+    fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T>;
 }
 
 impl<T> OrValidationErrors<T> for Option<T> {
     fn or_validation_errors(self) -> ValidationResult<T> {
         self.ok_or_else(Default::default)
     }
+
+    fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
+        let mut validation_errors = ValidationErrors::new();
+
+        validation_errors.add(field, error);
+
+        self.ok_or(validation_errors)
+    }
 }
 
 impl<T, E> OrValidationErrors<T> for Result<T, E> {
     fn or_validation_errors(self) -> ValidationResult<T> {
         self.map_err(|_| Default::default())
+    }
+
+    fn or_validation_errors_with<'a>(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
+        let mut validation_errors = ValidationErrors::new();
+
+        validation_errors.add(field, error);
+
+        self.map_err(|_| validation_errors)
     }
 }
 

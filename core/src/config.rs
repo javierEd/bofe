@@ -100,7 +100,6 @@ pub(crate) struct StorageConfig {
     pub font_path: PathBuf,
     #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
-    #[allow(dead_code)]
     #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/storage/")]
     pub url: Url,
 }

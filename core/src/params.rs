@@ -5,6 +5,7 @@ use validator::{Validate, ValidationError};
 use crate::commands;
 use crate::constants::*;
 use crate::enums::{BoardVisibility, CountryCode};
+use crate::scalars::ColorCode;
 
 fn validate_birthdate(value: &NaiveDate) -> Result<(), ValidationError> {
     if *value > Utc::now().date_naive() {
@@ -96,6 +97,7 @@ pub(crate) struct CardParams {
         length(max = 1024, message = "Must have at most 1024 characters")
     )]
     pub content: String,
+    pub label_ids: Vec<Uuid>,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
@@ -107,11 +109,7 @@ pub(crate) struct LabelParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub name: String,
-    #[validate(
-        length(min = 4, max = 7, message = "Must have at least 4 characters"),
-        regex(path = *REGEX_COLOR_CODE, message = "Is invalid")
-    )]
-    pub color_code: String,
+    pub color_code: ColorCode,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
@@ -150,11 +148,7 @@ pub(crate) struct UpdateLabelParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub name: String,
-    #[validate(
-        length(min = 4, max = 7, message = "Must have at least 4 characters"),
-        regex(path = *REGEX_COLOR_CODE, message = "Is invalid")
-    )]
-    pub color_code: String,
+    pub color_code: ColorCode,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
