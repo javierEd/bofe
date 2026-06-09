@@ -53,8 +53,8 @@ trait AsyncRedisCacheExt<K> {
 
 impl<K, V> AsyncRedisCacheExt<K> for OnceCell<AsyncRedisCache<K, V>>
 where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
+    K: Clone + Display + Send + Sync,
+    V: DeserializeOwned + Send + Serialize,
 {
     async fn cache_remove(&self, prefix: &str, key: &K) {
         let _ = self
@@ -135,8 +135,8 @@ fn random_string<R: SampleRange<u8>>(length: R) -> String {
 
 async fn redis_cache_store<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
 where
-    K: Display + Send + Sync,
-    V: DeserializeOwned + Display + Send + Serialize + Sync,
+    K: Clone + Display + Send + Sync,
+    V: DeserializeOwned + Send + Serialize,
 {
     AsyncRedisCache::new(format!("{prefix}:"), CACHE_CONFIG.ttl())
         .connection_string(&CACHE_CONFIG.redis_url)
