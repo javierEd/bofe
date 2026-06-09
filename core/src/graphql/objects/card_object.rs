@@ -1,7 +1,7 @@
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 
-use crate::graphql::CustomContext;
+use crate::graphql::context::CustomExt;
 use crate::models::Card;
 
 use super::{BoardObject, LabelObject, ListObject, UserObject};

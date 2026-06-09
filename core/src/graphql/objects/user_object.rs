@@ -5,8 +5,8 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::commands;
-use crate::enums::CountryCode;
-use crate::graphql::CustomContext;
+use crate::enums::{CountryCode, LanguageCode};
+use crate::graphql::context::CustomExt;
 use crate::models::User;
 use crate::pagination::CursorParams;
 
@@ -38,6 +38,10 @@ impl UserObject<'_> {
 
     async fn birthdate(&self) -> NaiveDate {
         self.0.birthdate
+    }
+
+    async fn language_code(&self) -> LanguageCode {
+        self.0.language_code
     }
 
     async fn country_code(&self) -> CountryCode {

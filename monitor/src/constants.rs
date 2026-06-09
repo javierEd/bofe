@@ -1,0 +1,7 @@
+pub const KEY_TEXT_HELLO: &str = "hello";
+pub const KEY_TEXT_WELCOME_TO_BOFE: &str = "welcome-to-bofe";
+pub const KEY_TEXT_IF_YOU_HAVE_ANY_QUESTIONS: &str = "if-you-have-any-questions";
+pub const KEY_TEXT_IF_YOU_RECOGNIZE_THIS_ACTION: &str = "if-you-recognize-this-action";
+pub const KEY_TEXT_IF_NOT: &str = "if-not";
+pub const KEY_TEXT_NEW_SESSION_STARTED: &str = "new-session-started";
+pub const KEY_TEXT_SOMEONE_HAS_STARTED_A_NEW_SESSION_FROM: &str = "someone-has-started-a-new-session-from";

@@ -1,4 +1,7 @@
+use fluent_templates::{LanguageIdentifier, langid};
 use serde::{Deserialize, Serialize};
+
+use crate::L10n;
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Copy, Eq))]
 #[derive(sqlx::Type, Clone, Deserialize, Serialize, PartialEq)]
@@ -275,8 +278,34 @@ impl CountryCode {
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Copy, Eq))]
-#[derive(sqlx::Type, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(sqlx::Type, Clone, Default, Deserialize, Serialize, PartialEq)]
 #[sqlx(type_name = "language_code", rename_all = "lowercase")]
 pub enum LanguageCode {
+    #[default]
     En,
+    Es,
+}
+
+impl From<&str> for LanguageCode {
+    fn from(value: &str) -> Self {
+        let lang = value.split('-').next().unwrap_or(value).to_lowercase();
+
+        match lang.as_str() {
+            "es" => Self::Es,
+            _ => Self::En,
+        }
+    }
+}
+
+impl LanguageCode {
+    pub fn lang_id(&self) -> LanguageIdentifier {
+        match self {
+            LanguageCode::En => langid!("en"),
+            LanguageCode::Es => langid!("es"),
+        }
+    }
+
+    pub fn to_l10n(&self) -> L10n {
+        L10n::from(self)
+    }
 }

@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::commands;
 use crate::enums::BoardVisibility;
-use crate::graphql::CustomContext;
+use crate::graphql::context::CustomExt;
 use crate::models::Board;
 use crate::pagination::CursorParams;
 

@@ -5,7 +5,7 @@ use axum::Json;
 use axum::body::Body;
 use axum::extract::{Path, Query, State, WebSocketUpgrade};
 use axum::http::HeaderMap;
-use axum::http::header::{CONTENT_DISPOSITION, CONTENT_LENGTH, CONTENT_TYPE};
+use axum::http::header::{ACCEPT_LANGUAGE, CONTENT_DISPOSITION, CONTENT_LENGTH, CONTENT_TYPE};
 use axum::response::{IntoResponse, Result};
 use axum_client_ip::ClientIp;
 use axum_extra::TypedHeader;
@@ -13,7 +13,7 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
 
 use bofe_core::graphql::GraphqlSchema;
-use bofe_core::{Info, commands};
+use bofe_core::{Info, L10n, commands};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -183,7 +183,14 @@ pub async fn post_graphql(
 
     let application = commands::get_application_by_token(app_token).await.or_forbidden()?;
 
-    let mut batch_request = batch_request.into_inner().data(client_ip).data(application);
+    let l10n = headers
+        .get(ACCEPT_LANGUAGE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|langs| langs.split(',').next())
+        .map(|lang| L10n::from(lang.trim()))
+        .unwrap_or_default();
+
+    let mut batch_request = batch_request.into_inner().data(client_ip).data(application).data(l10n);
 
     if let Some(TypedHeader(Authorization(bearer))) = authorization {
         let token = bearer.token().to_owned();

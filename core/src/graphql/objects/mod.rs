@@ -3,7 +3,7 @@ use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::graphql::CustomContext;
+use crate::graphql::context::CustomExt;
 use crate::models::{List, Member, Session};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};

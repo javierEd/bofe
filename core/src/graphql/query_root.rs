@@ -2,9 +2,10 @@ use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
 use uuid::Uuid;
 
+use crate::graphql::IDExt;
+use crate::graphql::context::CustomExt;
 use crate::graphql::guards::UserGuard;
 use crate::graphql::objects::{BoardObject, CardObject, InfoObject, LabelObject, ListObject, UserObject};
-use crate::graphql::{CustomContext, IDExt};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 

@@ -1,6 +1,6 @@
 use async_graphql::{Context, Guard, Result};
 
-use super::CustomContext;
+use crate::graphql::context::CustomExt;
 
 #[derive(Default)]
 pub struct GuestGuard;
