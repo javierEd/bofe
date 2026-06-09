@@ -38,7 +38,7 @@ imageproc = "0.27.0"
 rand = "0.10.1"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 redis = "1.2.2"
-regex = "1.12.3"
+regex = "1.12.4"
 rust_iso3166 = "0.1.14"
 serde.workspace = true
 serde_json.workspace = true
