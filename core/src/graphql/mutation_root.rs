@@ -5,7 +5,8 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use crate::commands;
-use crate::graphql::CustomContext;
+use crate::constants::{KEY_TEXT_FAILED_TO_CREATE_SESSION, KEY_TEXT_FAILED_TO_CREATE_USER};
+use crate::graphql::context::CustomExt;
 use crate::graphql::guards::{GuestGuard, UserGuard};
 use crate::graphql::objects::*;
 use crate::params::*;
@@ -94,19 +95,22 @@ impl MutationRoot {
     async fn create_session(&self, ctx: &Context<'_>, params: SessionParams) -> Result<SessionObject<'_>> {
         let application = ctx.application();
         let ip_address = ctx.client_ip();
+        let l10n = ctx.l10n();
 
         commands::insert_session(application, ip_address, params)
             .await
             .map(SessionObject)
-            .map_err(|errors| to_mutation_error("Failed to create session", errors))
+            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_SESSION), errors))
     }
 
     #[graphql(guard = "GuestGuard")]
-    async fn create_user(&self, params: UserParams) -> Result<UserObject<'_>> {
+    async fn create_user(&self, ctx: &Context<'_>, params: UserParams) -> Result<UserObject<'_>> {
+        let l10n = ctx.l10n();
+
         commands::insert_user(params)
             .await
             .map(UserObject)
-            .map_err(|errors| to_mutation_error("Failed to create user", errors))
+            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_USER), errors))
     }
 
     #[graphql(guard = "UserGuard")]

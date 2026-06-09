@@ -8,6 +8,7 @@ use tracing::info;
 use bofe_core::{jobs_storage, start_tracing_subscriber};
 
 mod config;
+mod constants;
 mod handlers;
 mod ip_geo;
 mod mailer;

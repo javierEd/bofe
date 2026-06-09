@@ -3,6 +3,7 @@ use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
 
 use crate::config::MAILER_CONFIG;
+use crate::constants::*;
 
 use bofe_core::models::{Session, User};
 
@@ -61,37 +62,49 @@ If not, please contact us at the following email address: {}",
 }
 
 pub async fn send_welcome_email(user: &User<'_>) -> anyhow::Result<()> {
+    let l10n = user.language_code.to_l10n();
+    let text_welcome = l10n.text(KEY_TEXT_WELCOME_TO_BOFE);
+
     let message = format!(
-        "Hello @{},
+        "{} @{},
 
-        Welcome to Bofe.
+        {}
 
-        If you have any questions, please contact us at the following email address: {}",
-        user.username, MAILER_CONFIG.support_email_address
+        {}: {}",
+        l10n.text(KEY_TEXT_HELLO),
+        user.username,
+        text_welcome,
+        l10n.text(KEY_TEXT_IF_YOU_HAVE_ANY_QUESTIONS),
+        MAILER_CONFIG.support_email_address
     );
 
-    send_email(&user.email, "Welcome to Bofe", &message).await
+    send_email(&user.email, &text_welcome, &message).await
 }
 
 pub async fn send_new_session_email(session: &Session<'_>) -> anyhow::Result<()> {
     let user = session.user().await?;
+    let l10n = user.language_code.to_l10n();
 
     let message = format!(
-        "Hello @{},
+        "{} @{},
 
-Someone has started a new session from:
+{}:
 
-Location: {}
+{}
 
-If you recognize this action, you can ignore this message.
+{}.
 
-If not, please contact us at the following email address: {}",
+{}: {}",
+        l10n.text(KEY_TEXT_HELLO),
         user.username,
+        l10n.text(KEY_TEXT_SOMEONE_HAS_STARTED_A_NEW_SESSION_FROM),
         session.location(),
+        l10n.text(KEY_TEXT_IF_YOU_RECOGNIZE_THIS_ACTION),
+        l10n.text(KEY_TEXT_IF_NOT),
         MAILER_CONFIG.support_email_address,
     );
 
-    send_email(&user.email, "New session started", &message).await
+    send_email(&user.email, &l10n.text(KEY_TEXT_NEW_SESSION_STARTED), &message).await
 }
 
 pub mod admin_emails {

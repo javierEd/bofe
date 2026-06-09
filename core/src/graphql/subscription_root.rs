@@ -2,9 +2,10 @@ use async_graphql::{Context, ID, Result, Subscription};
 use futures_util::{Stream, StreamExt};
 
 use crate::commands;
+use crate::graphql::context::CustomExt;
 use crate::graphql::objects::BoardObject;
 
-use super::{CustomContext, IDExt};
+use super::IDExt;
 
 pub struct SubscriptionRoot;
 

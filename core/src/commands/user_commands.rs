@@ -205,8 +205,9 @@ pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User
             display_name,
             full_name,
             birthdate,
+            language_code,
             country_code
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
             id,
             username,
@@ -220,13 +221,14 @@ pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User
             disabled_at,
             created_at,
             updated_at"#,
-        params.username,             // $1
-        params.email.to_lowercase(), // $2
-        encrypted_password,          // $3
-        display_name,                // $4
-        params.full_name,            // $5
-        params.birthdate,            // $6
-        params.country_code as _,    // $7
+        params.username,                               // $1
+        params.email.to_lowercase(),                   // $2
+        encrypted_password,                            // $3
+        display_name,                                  // $4
+        params.full_name,                              // $5
+        params.birthdate,                              // $6
+        params.language_code.unwrap_or_default() as _, // $7
+        params.country_code as _,                      // $8
     )
     .fetch_one(db_pool)
     .await
@@ -358,7 +360,7 @@ pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParam
 
     let updated_user = sqlx::query_as!(
         User,
-        r#"UPDATE users SET display_name = $2, full_name = $3, birthdate = $4, country_code = $5
+        r#"UPDATE users SET display_name = $2, full_name = $3, birthdate = $4, language_code = $5, country_code = $6
         WHERE disabled_at IS NULL AND id = $1
         RETURNING
             id,
@@ -373,11 +375,12 @@ pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParam
             disabled_at,
             created_at,
             updated_at"#,
-        user.id,                  // $1
-        params.display_name,      // $2
-        params.full_name,         // $3
-        params.birthdate,         // $4
-        params.country_code as _  // $5
+        user.id,                                       // $1
+        params.display_name,                           // $2
+        params.full_name,                              // $3
+        params.birthdate,                              // $4
+        params.language_code.unwrap_or_default() as _, // $5
+        params.country_code as _                       // $6
     )
     .fetch_one(db_pool)
     .await

@@ -1,7 +1,7 @@
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 
-use crate::graphql::CustomContext;
+use crate::graphql::context::CustomExt;
 use crate::models::Label;
 use crate::scalars::ColorCode;
 

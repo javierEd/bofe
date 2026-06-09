@@ -4,7 +4,7 @@ use validator::{Validate, ValidationError};
 
 use crate::commands;
 use crate::constants::*;
-use crate::enums::{BoardVisibility, CountryCode};
+use crate::enums::{BoardVisibility, CountryCode, LanguageCode};
 use crate::scalars::ColorCode;
 
 fn validate_birthdate(value: &NaiveDate) -> Result<(), ValidationError> {
@@ -190,8 +190,9 @@ pub struct UpdateProfileParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub full_name: String,
-    #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
-    pub birthdate: Option<NaiveDate>,
+    #[validate(custom(function = "validate_birthdate"))]
+    pub birthdate: NaiveDate,
+    pub language_code: Option<LanguageCode>,
     pub country_code: CountryCode,
 }
 
@@ -218,7 +219,8 @@ pub(crate) struct UserParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub full_name: String,
-    #[validate(required(message = "Can't be blank"), custom(function = "validate_birthdate"))]
-    pub birthdate: Option<NaiveDate>,
+    #[validate(custom(function = "validate_birthdate"))]
+    pub birthdate: NaiveDate,
+    pub language_code: Option<LanguageCode>,
     pub country_code: CountryCode,
 }

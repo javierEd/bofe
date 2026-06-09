@@ -1,8 +1,12 @@
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use chrono::{DateTime, Utc};
+use fluent_bundle::FluentValue;
+use fluent_templates::{LanguageIdentifier, Loader};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
@@ -26,6 +30,7 @@ pub mod models;
 pub mod params;
 
 use crate::config::{DATABASE_CONFIG, IM_DATABASE_CONFIG, MONITOR_CONFIG};
+use crate::enums::LanguageCode;
 use crate::jobs::{NewSessionJob, NewUserJob, PasswordChangedJob};
 use crate::models::{Session, User};
 
@@ -33,6 +38,38 @@ static DB_POOL_CELL: OnceCell<PgPool> = OnceCell::const_new();
 static JOBS_STORAGE_CELL: OnceCell<JobsStorage> = OnceCell::const_new();
 static IM_DB_CLIENT: LazyLock<redis::Client> =
     LazyLock::new(|| redis::Client::open(IM_DATABASE_CONFIG.url.clone()).expect("Could not get Redis client"));
+
+fluent_templates::static_loader! {
+    static LOCALES = {
+        locales: "../locales",
+        fallback_language: "en"
+    };
+}
+
+#[derive(Clone, Default)]
+pub struct L10n(LanguageIdentifier);
+
+impl From<&LanguageCode> for L10n {
+    fn from(code: &LanguageCode) -> Self {
+        Self(code.lang_id())
+    }
+}
+
+impl From<&str> for L10n {
+    fn from(lang: &str) -> Self {
+        Self(LanguageCode::from(lang).lang_id())
+    }
+}
+
+impl L10n {
+    pub fn text(&self, text_id: &str) -> String {
+        LOCALES.lookup(&self.0, text_id)
+    }
+
+    pub fn text_with_args(&self, text_id: &str, args: &HashMap<Cow<'static, str>, FluentValue>) -> String {
+        LOCALES.lookup_with_args(&self.0, text_id, args)
+    }
+}
 
 pub struct JobsStorage {
     pub new_session: RedisStorage<NewSessionJob>,
