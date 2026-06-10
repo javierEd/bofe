@@ -1,3 +1,4 @@
+use bofe_core::enums::ConfirmationAction;
 use lettre::message::header::ContentType;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
@@ -5,7 +6,7 @@ use lettre::{Message, transport::smtp::authentication::Credentials};
 use crate::config::MAILER_CONFIG;
 use crate::constants::*;
 
-use bofe_core::models::{Session, User};
+use bofe_core::models::{Confirmation, Session, User};
 
 pub async fn send_email(to: &str, subject: &str, body: &str) -> anyhow::Result<()> {
     if !MAILER_CONFIG.enable {
@@ -46,6 +47,34 @@ pub async fn send_email(to: &str, subject: &str, body: &str) -> anyhow::Result<(
     Ok(())
 }
 
+pub async fn send_new_confirmation_email(confirmation: &Confirmation<'_>, code: &str) -> anyhow::Result<()> {
+    let user = confirmation.user().await;
+    let l10n = user.language_code.to_l10n();
+
+    let action_text = match confirmation.action {
+        ConfirmationAction::Email => l10n.text(KEY_TEXT_CONFIRM_YOUR_EMAIL),
+        ConfirmationAction::Login => l10n.text(KEY_TEXT_CONFIRM_YOUR_LOGIN),
+        ConfirmationAction::PasswordReset => l10n.text(KEY_TEXT_RESET_YOUR_PASSWORD),
+    };
+
+    let message = format!(
+        "{} {},
+
+{} {}:
+
+{}
+
+{}.",
+        l10n.text(KEY_TEXT_HELLO),
+        user.username,
+        l10n.text(KEY_TEXT_USE_THIS_CODE_TO),
+        action_text,
+        code,
+        l10n.text(KEY_TEXT_IF_YOU_DONT_RECOGNIZE_THIS_ACTION),
+    );
+
+    send_email(&user.email, &l10n.text(KEY_TEXT_CONFIRMATION_CODE), &message).await
+}
 pub async fn send_password_changed_email(user: &User<'_>) -> anyhow::Result<()> {
     let l10n = user.language_code.to_l10n();
 

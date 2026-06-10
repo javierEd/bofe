@@ -1,2 +1,5 @@
+email-is-already-confirmed = Correo electrónico ya confirmado
+failed-to-confirm-email = Error al confirmar correo electrónico
 failed-to-create-session = Error al crear sesión
 failed-to-create-user = Error al crear usuario
+failed-to-send-confirmation = Error al enviar confirmación

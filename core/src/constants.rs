@@ -57,8 +57,11 @@ pub static ERROR_PASSWORD_MUST_CHANGE: LazyLock<ValidationError> = LazyLock::new
     ValidationError::new("password-must-change").with_message(Cow::Borrowed("Must be different from current password"))
 });
 
+pub const KEY_TEXT_EMAIL_IS_ALREADY_CONFIRMED: &str = "email-is-already-confirmed";
+pub const KEY_TEXT_FAILED_TO_CONFIRM_EMAIL: &str = "failed-to-confirm-email";
 pub const KEY_TEXT_FAILED_TO_CREATE_SESSION: &str = "failed-to-create-session";
 pub const KEY_TEXT_FAILED_TO_CREATE_USER: &str = "failed-to-create-user";
+pub const KEY_TEXT_FAILED_TO_SEND_CONFIRMATION: &str = "failed-to-send-confirmation";
 
 pub static REGEX_COLOR_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A#[[:xdigit:]]{3,6}\z").unwrap());
 pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnum:]]+(?:-[[:alnum:]]+)*\z").unwrap());

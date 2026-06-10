@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::graphql::context::CustomExt;
-use crate::models::{List, Member, Session};
+use crate::models::{Confirmation, List, Member, Session};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
@@ -17,6 +17,23 @@ pub use board_object::BoardObject;
 pub use card_object::CardObject;
 pub use label_object::LabelObject;
 pub use user_object::UserObject;
+
+pub struct ConfirmationObject<'a>(pub Confirmation<'a>);
+
+#[Object]
+impl ConfirmationObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+
+    async fn updated_at(&self) -> Option<DateTime<Utc>> {
+        self.0.updated_at
+    }
+}
 
 pub struct InfoObject(pub Info);
 
@@ -191,6 +208,10 @@ impl SessionObject<'_> {
 
     async fn expires_at(&self) -> DateTime<Utc> {
         self.0.expires_at
+    }
+
+    async fn refreshed_at(&self) -> Option<DateTime<Utc>> {
+        self.0.refreshed_at
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

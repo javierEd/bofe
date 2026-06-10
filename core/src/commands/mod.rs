@@ -24,6 +24,7 @@ mod application_commands;
 mod board_commands;
 mod card_commands;
 mod card_label_commands;
+mod confirmation_commands;
 mod im_database_commands;
 mod label_commands;
 mod list_commands;
@@ -35,6 +36,7 @@ pub use application_commands::*;
 pub(crate) use board_commands::*;
 pub(crate) use card_commands::*;
 pub(crate) use card_label_commands::*;
+pub use confirmation_commands::*;
 pub(crate) use im_database_commands::*;
 pub(crate) use label_commands::*;
 pub(crate) use list_commands::*;
@@ -120,6 +122,12 @@ fn encrypt_password(value: &str) -> String {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     argon2.hash_password(value.as_bytes(), &salt).unwrap().to_string()
+}
+
+fn random_numeric_string(length: u8) -> String {
+    let mut rng = rng();
+
+    (0..length).map(|_| rng.random_range(0..=9).to_string()).collect()
 }
 
 fn random_string<R: SampleRange<u8>>(length: R) -> String {

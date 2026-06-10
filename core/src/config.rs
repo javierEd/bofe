@@ -9,6 +9,8 @@ use url::Url;
 pub(crate) static APPLICATION_CONFIG: LazyLock<ApplicationConfig> =
     LazyLock::new(|| ApplicationConfig::init_from_env().unwrap());
 pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheConfig::init_from_env().unwrap());
+pub(crate) static CONFIRMATION_CONFIG: LazyLock<ConfirmationConfig> =
+    LazyLock::new(|| ConfirmationConfig::init_from_env().unwrap());
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
     LazyLock::new(|| DatabaseConfig::init_from_env().unwrap());
 pub(crate) static IM_DATABASE_CONFIG: LazyLock<IMDatabaseConfig> =
@@ -49,6 +51,12 @@ impl CacheConfig {
     pub fn ttl(&self) -> Duration {
         Duration::from_secs(self.ttl_secs)
     }
+}
+
+#[derive(Envconfig)]
+pub(crate) struct ConfirmationConfig {
+    #[envconfig(from = "CONFIRMATION_CODE_LENGTH", default = "6")]
+    pub code_length: u8,
 }
 
 #[derive(Envconfig)]

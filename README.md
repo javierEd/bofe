@@ -69,6 +69,7 @@ With **Bofe** you can easily build kanban style boards for your projects, person
 | APPLICATION_TTL_SECS         | Number  | 31104000                                        | api             |
 | CACHE_REDIS_URL              | String  | redis://127.0.0.1:6379/0                        | api,monitor     |
 | CACHE_TTL_SECS               | Number  | 3600                                            | api,monitor     |
+| CONFIRMATION_CODE_LENGTH     | Number  | 6                                               | api             |
 | DATABASE_MAX_CONNECTIONS     | Number  | 5                                               | api,monitor     |
 | DATABASE_URL                 | String  | postgres://bofe:bofe@127.0.0.1:5432/bofe_dev    | api,monitor     |
 | IM_DATABASE_URL              | String  | redis://127.0.0.1:6379/2                        | api             |
