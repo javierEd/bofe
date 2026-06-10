@@ -47,18 +47,25 @@ pub async fn send_email(to: &str, subject: &str, body: &str) -> anyhow::Result<(
 }
 
 pub async fn send_password_changed_email(user: &User<'_>) -> anyhow::Result<()> {
+    let l10n = user.language_code.to_l10n();
+
     let message = format!(
-        "Hello @{},
+        "{} @{},
 
-Your password has been changed.
+{}.
 
-If you recognize this action, you can ignore this message.
+{}.
 
-If not, please contact us at the following email address: {}",
-        user.username, MAILER_CONFIG.support_email_address
+{}: {}",
+        l10n.text(KEY_TEXT_HELLO),
+        user.username,
+        l10n.text(KEY_TEXT_YOUR_PASSWORD_HAS_BEEN_CHANGED),
+        l10n.text(KEY_TEXT_IF_YOU_RECOGNIZE_THIS_ACTION),
+        l10n.text(KEY_TEXT_IF_NOT),
+        MAILER_CONFIG.support_email_address
     );
 
-    send_email(&user.email, "Password changed", &message).await
+    send_email(&user.email, &l10n.text(KEY_TEXT_PASSWORD_CHANGED), &message).await
 }
 
 pub async fn send_welcome_email(user: &User<'_>) -> anyhow::Result<()> {

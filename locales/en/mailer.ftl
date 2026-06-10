@@ -4,4 +4,6 @@ if-you-have-any-questions = If you have any questions, please contact us at the 
 if-you-recognize-this-action = If you recognize this action, you can ignore this message
 If-not = If not, please contact us at the following email address
 new-session-started = New session started
+password-changed = Password changed
 someone-has-started-a-new-session-from = Someone has started a new session from
+your-password-has-been-changed = Your password has been changed
