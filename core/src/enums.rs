@@ -12,6 +12,14 @@ pub enum BoardVisibility {
     Public,
 }
 
+#[derive(sqlx::Type, Clone, Copy, PartialEq)]
+#[sqlx(type_name = "confirmation_action", rename_all = "snake_case")]
+pub enum ConfirmationAction {
+    Email,
+    Login,
+    PasswordReset,
+}
+
 #[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Eq))]
 #[derive(sqlx::Type, strum::Display, Clone, Copy, Deserialize, Serialize, PartialEq)]
 #[sqlx(type_name = "country_code")]

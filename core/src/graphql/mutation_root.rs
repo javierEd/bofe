@@ -5,7 +5,8 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use crate::commands;
-use crate::constants::{KEY_TEXT_FAILED_TO_CREATE_SESSION, KEY_TEXT_FAILED_TO_CREATE_USER};
+use crate::constants::*;
+use crate::enums::ConfirmationAction;
 use crate::graphql::context::CustomExt;
 use crate::graphql::guards::{GuestGuard, UserGuard};
 use crate::graphql::objects::*;
@@ -13,34 +14,55 @@ use crate::params::*;
 
 pub struct MutationRoot;
 
-fn to_mutation_error(message: &str, errors: ValidationErrors) -> Error {
-    let params_err = Value::Object(
-        errors
-            .field_errors()
-            .iter()
-            .map(|(field, errors)| {
-                let error = &errors[0];
-                let mut details = IndexMap::new();
-                let mut details_args = IndexMap::new();
+fn to_mutation_error(message: &str, errors: Option<ValidationErrors>) -> Error {
+    let error = Error::new(message);
 
-                for (key, value) in error.params.iter() {
-                    details_args.insert(Name::new(key.to_case(Case::Camel)), value.to_value());
-                }
+    if let Some(errors) = errors {
+        let params_err = Value::Object(
+            errors
+                .field_errors()
+                .iter()
+                .map(|(field, errors)| {
+                    let error = &errors[0];
+                    let mut details = IndexMap::new();
+                    let mut details_args = IndexMap::new();
 
-                details.insert(Name::new("code"), Value::from(error.code.clone()));
-                details.insert(Name::new("message"), Value::from(error.message.clone()));
-                details.insert(Name::new("args"), Value::Object(details_args));
+                    for (key, value) in error.params.iter() {
+                        details_args.insert(Name::new(key.to_case(Case::Camel)), value.to_value());
+                    }
 
-                (Name::new(field.to_case(Case::Camel)), Value::from(details))
-            })
-            .collect(),
-    );
+                    details.insert(Name::new("code"), Value::from(error.code.clone()));
+                    details.insert(Name::new("message"), Value::from(error.message.clone()));
+                    details.insert(Name::new("args"), Value::Object(details_args));
 
-    Error::new(message).extend_with(|_, e| e.set("params", params_err))
+                    (Name::new(field.to_case(Case::Camel)), Value::from(details))
+                })
+                .collect(),
+        );
+
+        error.extend_with(|_, e| e.set("params", params_err))
+    } else {
+        error
+    }
 }
 
 #[Object]
 impl MutationRoot {
+    #[graphql(guard = "UserGuard")]
+    async fn confirm_email(
+        &self,
+        ctx: &Context<'_>,
+        confirmation_params: ConfirmationParams,
+    ) -> Result<UserObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+
+        commands::confirm_user_email(user, confirmation_params)
+            .await
+            .map(UserObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CONFIRM_EMAIL), None))
+    }
+
     #[graphql(guard = "UserGuard")]
     async fn create_board(&self, ctx: &Context<'_>, params: BoardParams) -> Result<BoardObject<'_>> {
         let user = ctx.user();
@@ -48,7 +70,7 @@ impl MutationRoot {
         commands::insert_board(user, params)
             .await
             .map(BoardObject)
-            .map_err(|errors| to_mutation_error("Failed to create board", errors))
+            .map_err(|errors| to_mutation_error("Failed to create board", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -58,7 +80,7 @@ impl MutationRoot {
         commands::insert_card(user, params)
             .await
             .map(CardObject)
-            .map_err(|errors| to_mutation_error("Failed to create card", errors))
+            .map_err(|errors| to_mutation_error("Failed to create card", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -68,7 +90,7 @@ impl MutationRoot {
         commands::insert_label(user, params)
             .await
             .map(LabelObject)
-            .map_err(|errors| to_mutation_error("Failed to create label", errors))
+            .map_err(|errors| to_mutation_error("Failed to create label", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -78,7 +100,7 @@ impl MutationRoot {
         commands::insert_list(user, params)
             .await
             .map(ListObject)
-            .map_err(|errors| to_mutation_error("Failed to create list", errors))
+            .map_err(|errors| to_mutation_error("Failed to create list", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -88,7 +110,7 @@ impl MutationRoot {
         commands::insert_member(user, params)
             .await
             .map(MemberObject)
-            .map_err(|errors| to_mutation_error("Failed to create member", errors))
+            .map_err(|errors| to_mutation_error("Failed to create member", Some(errors)))
     }
 
     #[graphql(guard = "GuestGuard")]
@@ -100,7 +122,7 @@ impl MutationRoot {
         commands::insert_session(application, ip_address, params)
             .await
             .map(SessionObject)
-            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_SESSION), errors))
+            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_SESSION), Some(errors)))
     }
 
     #[graphql(guard = "GuestGuard")]
@@ -110,7 +132,7 @@ impl MutationRoot {
         commands::insert_user(params)
             .await
             .map(UserObject)
-            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_USER), errors))
+            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CREATE_USER), Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -120,7 +142,7 @@ impl MutationRoot {
 
         commands::delete_board(user, &board)
             .await
-            .map_err(|_| to_mutation_error("Failed to delete board", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to delete board", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -130,7 +152,7 @@ impl MutationRoot {
 
         commands::delete_card(user, &card)
             .await
-            .map_err(|_| to_mutation_error("Failed to delete card", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to delete card", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -140,7 +162,7 @@ impl MutationRoot {
 
         commands::delete_label(user, &label)
             .await
-            .map_err(|_| to_mutation_error("Failed to delete label", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to delete label", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -150,7 +172,7 @@ impl MutationRoot {
 
         commands::delete_list(user, &list)
             .await
-            .map_err(|_| to_mutation_error("Failed to delete list", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to delete list", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -160,7 +182,7 @@ impl MutationRoot {
 
         commands::delete_member(user, &member)
             .await
-            .map_err(|_| to_mutation_error("Failed to delete member", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to delete member", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -169,7 +191,7 @@ impl MutationRoot {
 
         commands::finish_session(session)
             .await
-            .map_err(|_| to_mutation_error("Failed to finish session", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to finish session", None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -179,7 +201,22 @@ impl MutationRoot {
         commands::refresh_session(session)
             .await
             .map(SessionObject)
-            .map_err(|_| to_mutation_error("Failed to refresh session", ValidationErrors::new()))
+            .map_err(|_| to_mutation_error("Failed to refresh session", None))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn send_email_confirmation(&self, ctx: &Context<'_>) -> Result<ConfirmationObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+
+        if user.email_is_confirmed() {
+            return Err(to_mutation_error(&l10n.text(KEY_TEXT_EMAIL_IS_ALREADY_CONFIRMED), None));
+        }
+
+        commands::insert_confirmation(user, ConfirmationAction::Email)
+            .await
+            .map(ConfirmationObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_SEND_CONFIRMATION), None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -190,7 +227,7 @@ impl MutationRoot {
         commands::update_board(user, &board, params)
             .await
             .map(BoardObject)
-            .map_err(|errors| to_mutation_error("Failed to update board", errors))
+            .map_err(|errors| to_mutation_error("Failed to update board", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -201,7 +238,7 @@ impl MutationRoot {
         commands::update_card(user, &card, params)
             .await
             .map(CardObject)
-            .map_err(|errors| to_mutation_error("Failed to update card", errors))
+            .map_err(|errors| to_mutation_error("Failed to update card", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -219,7 +256,7 @@ impl MutationRoot {
         commands::update_card_list(user, &card, &new_list, position)
             .await
             .map(CardObject)
-            .map_err(|errors| to_mutation_error("Failed to update card list", errors))
+            .map_err(|errors| to_mutation_error("Failed to update card list", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -230,7 +267,7 @@ impl MutationRoot {
         commands::update_card_position(user, &card, position)
             .await
             .map(CardObject)
-            .map_err(|errors| to_mutation_error("Failed to update card position", errors))
+            .map_err(|errors| to_mutation_error("Failed to update card position", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -241,7 +278,7 @@ impl MutationRoot {
         commands::update_label(user, &label, params)
             .await
             .map(LabelObject)
-            .map_err(|errors| to_mutation_error("Failed to update label", errors))
+            .map_err(|errors| to_mutation_error("Failed to update label", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -252,7 +289,7 @@ impl MutationRoot {
         commands::update_list(user, &list, params)
             .await
             .map(ListObject)
-            .map_err(|errors| to_mutation_error("Failed to update list", errors))
+            .map_err(|errors| to_mutation_error("Failed to update list", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -263,7 +300,7 @@ impl MutationRoot {
         commands::update_list_position(user, &list, position)
             .await
             .map(ListObject)
-            .map_err(|errors| to_mutation_error("Failed to update list position", errors))
+            .map_err(|errors| to_mutation_error("Failed to update list position", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -274,7 +311,7 @@ impl MutationRoot {
         commands::update_member(user, &member, params)
             .await
             .map(MemberObject)
-            .map_err(|errors| to_mutation_error("Failed to update member", errors))
+            .map_err(|errors| to_mutation_error("Failed to update member", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -284,7 +321,7 @@ impl MutationRoot {
         commands::update_user_password(user, params)
             .await
             .map(UserObject)
-            .map_err(|errors| to_mutation_error("Failed to update password", errors))
+            .map_err(|errors| to_mutation_error("Failed to update password", Some(errors)))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -294,6 +331,6 @@ impl MutationRoot {
         commands::update_user_profile(user, params)
             .await
             .map(UserObject)
-            .map_err(|errors| to_mutation_error("Failed to update profile", errors))
+            .map_err(|errors| to_mutation_error("Failed to update profile", Some(errors)))
     }
 }

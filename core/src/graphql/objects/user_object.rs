@@ -1,5 +1,5 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
-use async_graphql::{Context, ID, Object, Result};
+use async_graphql::{Context, Error, ID, Object, Result};
 use chrono::{DateTime, NaiveDate, Utc};
 use url::Url;
 use uuid::Uuid;
@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::commands;
 use crate::enums::{CountryCode, LanguageCode};
 use crate::graphql::context::CustomExt;
+use crate::graphql::guards::UserGuard;
 use crate::models::User;
 use crate::pagination::CursorParams;
 
@@ -22,6 +23,28 @@ impl UserObject<'_> {
 
     async fn username(&self) -> &str {
         &self.0.username
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn email(&self, ctx: &Context<'_>) -> Result<&str> {
+        let user = ctx.user();
+
+        if self.0.id == user.id {
+            Ok(&self.0.email)
+        } else {
+            Err(Error::new("Forbidden"))
+        }
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn email_is_confirmed(&self, ctx: &Context<'_>) -> Result<bool> {
+        let user = ctx.user();
+
+        if self.0.id == user.id {
+            Ok(self.0.email_is_confirmed())
+        } else {
+            Err(Error::new("Forbidden"))
+        }
     }
 
     async fn initials(&self) -> String {

@@ -1,9 +1,15 @@
+confirm-your-email = confirm your email
+confirm-your-login = confirm your login
+confirmation-code = Confirmation code
 hello = Hello
-welcome-to-bofe = Welcome to Bofe!
+if-you-dont-recognize-this-action = If you don't recognize this action, you can ignore this message
 if-you-have-any-questions = If you have any questions, please contact us at the following email address
 if-you-recognize-this-action = If you recognize this action, you can ignore this message
 If-not = If not, please contact us at the following email address
 new-session-started = New session started
 password-changed = Password changed
 someone-has-started-a-new-session-from = Someone has started a new session from
+reset-your-password = reset your password
+use-this-code-to = Use this code to
+welcome-to-bofe = Welcome to Bofe!
 your-password-has-been-changed = Your password has been changed
