@@ -4,4 +4,6 @@ if-you-have-any-questions = Si tienes alguna pregunta, por favor contáctanos en
 if-you-recognize-this-action = Si reconoces esta acción, puedes ignorar este mensaje
 if-not = Si no, por favor contáctanos a la siguiente dirección de correo electrónico
 new-session-started = Nueva sesión iniciada
+password-changed = Contraseña cambiada
 someone-has-started-a-new-session-from = Alguien ha iniciado una nueva sesión desde
+your-password-has-been-changed = Tu contraseña ha sido cambiada
