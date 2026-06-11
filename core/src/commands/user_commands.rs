@@ -4,13 +4,13 @@ use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 use crate::constants::*;
-use crate::enums::{ConfirmationAction, CountryCode, LanguageCode};
+use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
 use crate::pagination::{CursorPage, CursorParams};
-use crate::params::{ConfirmationParams, UpdatePasswordParams, UpdateProfileParams, UserParams};
+use crate::params::{UpdatePasswordParams, UpdateProfileParams, UserParams};
 use crate::{db_pool, jobs_storage};
 
-use super::*;
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store, text_icon};
 
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
     let user = get_user_by_username_or_email(username_or_email).await?;
@@ -20,59 +20,6 @@ pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &st
     } else {
         Err(sqlx::Error::RowNotFound)
     }
-}
-
-pub async fn confirm_user_email<'a>(
-    user: &User<'_>,
-    confirmation_params: ConfirmationParams,
-) -> ValidationResult<User<'a>> {
-    confirmation_params.validate()?;
-
-    let confirmation = get_confirmation_by_id(confirmation_params.id)
-        .await
-        .map_err(|_| ValidationErrors::new())?;
-
-    if confirmation.user_id != user.id {
-        return Err(ValidationErrors::new());
-    }
-
-    finish_confirmation(
-        &confirmation,
-        ConfirmationAction::Email,
-        &confirmation_params.code,
-        async move || {
-            let db_pool = db_pool().await;
-
-            let updated_user = sqlx::query_as!(
-                User,
-                r#"UPDATE users SET email_confirmed_at = current_timestamp
-            WHERE disabled_at IS NULL AND email_confirmed_at IS NULL AND id = $1
-            RETURNING
-                id,
-                username,
-                email,
-                email_confirmed_at,
-                encrypted_password,
-                full_name,
-                display_name,
-                birthdate,
-                language_code AS "language_code!: LanguageCode",
-                country_code AS "country_code!: CountryCode",
-                disabled_at,
-                created_at,
-                updated_at"#,
-                user.id, // $1
-            )
-            .fetch_one(db_pool)
-            .await
-            .or_validation_errors()?;
-
-            remove_user_cache(user).await;
-
-            Ok(updated_user)
-        },
-    )
-    .await
 }
 
 pub fn get_user_avatar_image(user: &User<'_>, size: u16) -> anyhow::Result<Vec<u8>> {
@@ -344,7 +291,7 @@ pub async fn paginate_users<'a>(cursor_params: CursorParams, query: &str) -> Cur
     .await
 }
 
-async fn remove_user_cache(user: &User<'_>) {
+pub(crate) async fn remove_user_cache(user: &User<'_>) {
     let username = user.username.to_lowercase();
     let email = user.email.to_lowercase();
 

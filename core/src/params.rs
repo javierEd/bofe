@@ -153,6 +153,17 @@ pub(crate) struct SessionParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub struct UpdateEmailParams {
+    #[validate(
+        length(min = 5, max = 255, message = "Must have between 5 and 255 characters"),
+        email(message = "Is invalid"),
+        custom(function = "validate_email")
+    )]
+    pub email: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub(crate) struct UpdateLabelParams {
     #[validate(
         custom(function = "validate_presence"),

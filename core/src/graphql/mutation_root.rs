@@ -271,6 +271,26 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn update_email(
+        &self,
+        ctx: &Context<'_>,
+        password: String,
+        params: UpdateEmailParams,
+    ) -> Result<UserObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+
+        if !user.verify_password(&password) {
+            return Err(to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UPDATE_EMAIL), None));
+        }
+
+        commands::update_user_email(user, params)
+            .await
+            .map(UserObject)
+            .map_err(|errors| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UPDATE_EMAIL), Some(errors)))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn update_label(&self, ctx: &Context<'_>, id: Uuid, params: UpdateLabelParams) -> Result<LabelObject<'_>> {
         let user = ctx.user();
         let label = commands::get_visible_label_by_id(id, Some(user)).await?;
