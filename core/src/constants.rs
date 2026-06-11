@@ -36,6 +36,7 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
+pub const CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG: &str = "get_board_by_user_and_slug";
 pub const CACHE_PREFIX_GET_LABEL_BY_ID: &str = "get_label_by_id";
 pub const CACHE_PREFIX_GET_MEMBER: &str = "get_member";
 pub const CACHE_PREFIX_GET_MEMBER_BY_ID: &str = "get_member_by_id";

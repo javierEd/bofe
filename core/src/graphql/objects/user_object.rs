@@ -75,6 +75,15 @@ impl UserObject<'_> {
         self.0.avatar_image_url()
     }
 
+    async fn board_by_slug(&self, ctx: &Context<'_>, slug: String) -> Option<BoardObject<'_>> {
+        let user = ctx.user_opt();
+
+        commands::get_visible_board_by_user_and_slug(&self.0, &slug, user)
+            .await
+            .map(BoardObject)
+            .ok()
+    }
+
     async fn boards(
         &self,
         ctx: &Context<'_>,

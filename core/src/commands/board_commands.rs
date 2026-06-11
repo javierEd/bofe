@@ -1,9 +1,11 @@
+use std::fmt::Display;
+
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use crate::constants::{CACHE_PREFIX_GET_BOARD_BY_ID, CACHE_PREFIX_GET_BOARD_BY_SLUG, ERROR_ALREADY_EXISTS};
+use crate::constants::*;
 use crate::db_pool;
 use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
@@ -11,6 +13,15 @@ use crate::pagination::{CursorPage, CursorParams};
 use crate::params::BoardParams;
 
 use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, notify_board_channel, redis_cache_store};
+
+#[derive(Clone)]
+struct UuidAndString(Uuid, String);
+
+impl Display for UuidAndString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.0, self.1)
+    }
+}
 
 async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
@@ -86,6 +97,7 @@ pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
     .await
 }
 
+// TODO: To be removed
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ slug.to_lowercase() }"#,
@@ -113,6 +125,34 @@ async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     .await
 }
 
+#[concurrent_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ UuidAndString(user.id, slug.to_lowercase()) }"#,
+    ty = "AsyncRedisCache<UuidAndString, Board<'_>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG).await }"##
+)]
+pub async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> sqlx::Result<Board<'static>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Board,
+        r#"SELECT
+            id,
+            user_id,
+            name,
+            slug,
+            description,
+            visibility AS "visibility!: BoardVisibility",
+            created_at,
+            updated_at
+        FROM boards WHERE user_id = $1 AND LOWER(slug) = $2 LIMIT 1"#,
+        user.id,             // $1
+        slug.to_lowercase(), // $2
+    )
+    .fetch_one(db_pool)
+    .await
+}
+
 pub async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
     let board = get_board_by_id(id).await?;
 
@@ -125,6 +165,20 @@ pub async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
 
 pub async fn get_visible_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
     let board = get_board_by_slug(slug).await?;
+
+    if board.is_visible(target_user).await {
+        Ok(board)
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
+pub async fn get_visible_board_by_user_and_slug<'a>(
+    user: &User<'_>,
+    slug: &str,
+    target_user: Option<&User<'_>>,
+) -> sqlx::Result<Board<'a>> {
+    let board = get_board_by_user_and_slug(user, slug).await?;
 
     if board.is_visible(target_user).await {
         Ok(board)
@@ -238,10 +292,12 @@ pub async fn paginate_boards<'a>(
 
 async fn remove_board_cache(board: &Board<'_>) {
     let slug = board.slug.to_lowercase();
+    let user_and_slug = UuidAndString(board.user_id, slug.clone());
 
     tokio::join!(
         GET_BOARD_BY_ID.cache_remove(CACHE_PREFIX_GET_BOARD_BY_ID, &board.id),
         GET_BOARD_BY_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_SLUG, &slug),
+        GET_BOARD_BY_USER_AND_SLUG.cache_remove(CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG, &user_and_slug)
     );
 }
 
