@@ -63,6 +63,7 @@ pub const KEY_TEXT_FAILED_TO_CONFIRM_EMAIL: &str = "failed-to-confirm-email";
 pub const KEY_TEXT_FAILED_TO_CREATE_SESSION: &str = "failed-to-create-session";
 pub const KEY_TEXT_FAILED_TO_CREATE_USER: &str = "failed-to-create-user";
 pub const KEY_TEXT_FAILED_TO_SEND_CONFIRMATION: &str = "failed-to-send-confirmation";
+pub const KEY_TEXT_FAILED_TO_UPDATE_EMAIL: &str = "failed-to-update-email";
 
 pub static REGEX_COLOR_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A#[[:xdigit:]]{3,6}\z").unwrap());
 pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnum:]]+(?:-[[:alnum:]]+)*\z").unwrap());
