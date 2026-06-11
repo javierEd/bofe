@@ -20,6 +20,8 @@ impl QueryRoot {
         Ok(commands::get_visible_board_by_id(id, user).await.map(BoardObject).ok())
     }
 
+    // TODO: To be removed
+    #[graphql(deprecation = true)]
     async fn board_by_slug(&self, ctx: &Context<'_>, slug: String) -> Option<BoardObject<'_>> {
         let user = ctx.user_opt();
 
