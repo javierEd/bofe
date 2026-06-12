@@ -75,23 +75,44 @@ pub async fn send_new_confirmation_email(confirmation: &Confirmation<'_>, code: 
 
     send_email(&user.email, &l10n.text(KEY_TEXT_CONFIRMATION_CODE), &message).await
 }
-pub async fn send_password_changed_email(user: &User<'_>) -> anyhow::Result<()> {
+
+pub async fn send_password_changed_email(user: &User<'_>, new_password: Option<String>) -> anyhow::Result<()> {
     let l10n = user.language_code.to_l10n();
+
+    let text_content = if let Some(new_password) = new_password {
+        format!(
+            "{}: {}
+
+{}.
+
+{}: {}",
+            l10n.text(KEY_TEXT_YOUR_NEW_PASSWORD_IS),
+            new_password,
+            l10n.text(KEY_TEXT_PLEASE_KEEP_IT_IN_A_SAFE_PLACE),
+            l10n.text(KEY_TEXT_IF_YOU_HAVE_ANY_QUESTIONS),
+            MAILER_CONFIG.support_email_address
+        )
+    } else {
+        format!(
+            "{}.
+
+{}: {}",
+            l10n.text(KEY_TEXT_IF_YOU_RECOGNIZE_THIS_ACTION),
+            l10n.text(KEY_TEXT_IF_NOT),
+            MAILER_CONFIG.support_email_address
+        )
+    };
 
     let message = format!(
         "{} @{},
 
 {}.
 
-{}.
-
-{}: {}",
+{}",
         l10n.text(KEY_TEXT_HELLO),
         user.username,
         l10n.text(KEY_TEXT_YOUR_PASSWORD_HAS_BEEN_CHANGED),
-        l10n.text(KEY_TEXT_IF_YOU_RECOGNIZE_THIS_ACTION),
-        l10n.text(KEY_TEXT_IF_NOT),
-        MAILER_CONFIG.support_email_address
+        text_content,
     );
 
     send_email(&user.email, &l10n.text(KEY_TEXT_PASSWORD_CHANGED), &message).await

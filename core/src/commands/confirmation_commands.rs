@@ -1,31 +1,37 @@
 use uuid::Uuid;
-use validator::ValidationErrors;
+use validator::{Validate, ValidationErrors};
 
 use crate::config::CONFIRMATION_CONFIG;
 use crate::constants::ERROR_IS_INVALID;
 use crate::enums::ConfirmationAction;
 use crate::models::{Confirmation, User};
+use crate::params::ConfirmationParams;
 use crate::{db_pool, jobs_storage};
 
 use super::{ValidationResult, encrypt_password, random_numeric_string};
 
-pub(crate) async fn finish_confirmation<F, IF, T>(
-    confirmation: &Confirmation<'_>,
+pub(crate) async fn finish_confirmation<'a, F, IF, T>(
+    params: ConfirmationParams,
     action: ConfirmationAction,
-    code: &str,
     on_success: F,
 ) -> ValidationResult<T>
 where
-    F: Fn() -> IF,
+    F: Fn(Confirmation<'a>) -> IF,
     IF: std::future::IntoFuture<Output = ValidationResult<T>>,
 {
+    params.validate()?;
+
+    let confirmation = get_confirmation_by_id(params.id)
+        .await
+        .map_err(|_| ValidationErrors::new())?;
+
     let db_pool = db_pool().await;
 
     if confirmation.action != action {
         return Err(ValidationErrors::new());
     }
 
-    if !confirmation.verify_code(code) {
+    if !confirmation.verify_code(&params.code) {
         let _ = sqlx::query!(
             "UPDATE confirmations
             SET
@@ -44,7 +50,7 @@ where
         return Err(validation_errors);
     }
 
-    let result = on_success().await;
+    let result = on_success(confirmation.clone()).await;
 
     match result {
         Ok(success) => {

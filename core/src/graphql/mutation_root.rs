@@ -6,7 +6,6 @@ use validator::ValidationErrors;
 
 use crate::commands;
 use crate::constants::*;
-use crate::enums::ConfirmationAction;
 use crate::graphql::context::CustomExt;
 use crate::graphql::guards::{GuestGuard, UserGuard};
 use crate::graphql::objects::*;
@@ -61,6 +60,16 @@ impl MutationRoot {
             .await
             .map(UserObject)
             .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CONFIRM_EMAIL), None))
+    }
+
+    #[graphql(guard = "GuestGuard")]
+    async fn confirm_password_reset(&self, ctx: &Context<'_>, confirmation_params: ConfirmationParams) -> Result<bool> {
+        let l10n = ctx.l10n();
+
+        commands::confirm_user_password_reset(confirmation_params)
+            .await
+            .map(|_| true)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CONFIRM_PASSWORD_RESET), None))
     }
 
     #[graphql(guard = "UserGuard")]
@@ -209,11 +218,21 @@ impl MutationRoot {
         let user = ctx.user();
         let l10n = ctx.l10n();
 
-        if user.email_is_confirmed() {
-            return Err(to_mutation_error(&l10n.text(KEY_TEXT_EMAIL_IS_ALREADY_CONFIRMED), None));
-        }
+        commands::send_user_email_confirmation(user)
+            .await
+            .map(ConfirmationObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_SEND_CONFIRMATION), None))
+    }
 
-        commands::insert_confirmation(user, ConfirmationAction::Email)
+    #[graphql(guard = "GuestGuard")]
+    async fn send_password_reset_confirmation(
+        &self,
+        ctx: &Context<'_>,
+        params: ResetPasswordParams,
+    ) -> Result<ConfirmationObject<'_>> {
+        let l10n = ctx.l10n();
+
+        commands::send_user_password_reset_confirmation(params)
             .await
             .map(ConfirmationObject)
             .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_SEND_CONFIRMATION), None))

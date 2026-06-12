@@ -62,7 +62,7 @@ pub async fn new_user(job: NewUserJob) -> Result<(), BoxDynError> {
 pub async fn password_changed(job: PasswordChangedJob) -> Result<(), BoxDynError> {
     let user = commands::get_user_by_id(job.user_id).await?;
 
-    send_password_changed_email(&user).await?;
+    send_password_changed_email(&user, job.new_password).await?;
 
     Ok(())
 }

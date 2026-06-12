@@ -143,6 +143,13 @@ pub(crate) struct MemberParams {
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
 #[derive(Validate)]
+pub(crate) struct ResetPasswordParams {
+    #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
+    pub username_or_email: String,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
+#[derive(Validate)]
 pub(crate) struct SessionParams {
     #[validate(length(min = 1, max = 255, message = "Must have between 1 and 255 characters"))]
     pub username_or_email: String,

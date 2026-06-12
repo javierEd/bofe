@@ -1,13 +1,13 @@
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
 use uuid::Uuid;
-use validator::{Validate, ValidationErrors};
+use validator::Validate;
 
 use crate::constants::*;
 use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
 use crate::pagination::{CursorPage, CursorParams};
-use crate::params::{UpdatePasswordParams, UpdateProfileParams, UserParams};
+use crate::params::{UpdateProfileParams, UserParams};
 use crate::{db_pool, jobs_storage};
 
 use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store, text_icon};
@@ -116,7 +116,7 @@ pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'s
     ty = "AsyncRedisCache<String, User<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_USERNAME_OR_EMAIL).await }"##
 )]
-async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<User<'static>> {
+pub(crate) async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<User<'static>> {
     if username_or_email.is_empty() {
         return Err(sqlx::Error::RowNotFound);
     }
@@ -303,60 +303,6 @@ pub(crate) async fn remove_user_cache(user: &User<'_>) {
         GET_USER_ID_BY_EMAIL.cache_remove(CACHE_PREFIX_GET_USER_ID_BY_EMAIL, &email),
         GET_USER_ID_BY_USERNAME.cache_remove(CACHE_PREFIX_GET_USER_ID_BY_USERNAME, &username),
     );
-}
-
-pub(crate) async fn update_user_password<'a>(
-    user: &User<'_>,
-    params: UpdatePasswordParams,
-) -> ValidationResult<User<'a>> {
-    params.validate()?;
-
-    let mut validation_errors = ValidationErrors::new();
-
-    if !user.verify_password(&params.current_password) {
-        validation_errors.add("current_password", ERROR_IS_INVALID.clone());
-
-        return Err(validation_errors);
-    }
-
-    if params.current_password == params.new_password {
-        validation_errors.add("new_password", ERROR_PASSWORD_MUST_CHANGE.clone());
-
-        return Err(validation_errors);
-    }
-
-    let db_pool = db_pool().await;
-    let encrypted_password = encrypt_password(&params.new_password);
-
-    let updated_user = sqlx::query_as!(
-        User,
-        r#"UPDATE users SET encrypted_password = $2 WHERE disabled_at IS NULL AND id = $1
-        RETURNING
-            id,
-            username,
-            email,
-            email_confirmed_at,
-            encrypted_password,
-            full_name,
-            display_name,
-            birthdate,
-            language_code AS "language_code!: LanguageCode",
-            country_code AS "country_code!: CountryCode",
-            disabled_at,
-            created_at,
-            updated_at"#,
-        user.id,            // $1
-        encrypted_password, // $2
-    )
-    .fetch_one(db_pool)
-    .await
-    .or_validation_errors()?;
-
-    jobs_storage().await.push_password_changed(user).await;
-
-    remove_user_cache(user).await;
-
-    Ok(updated_user)
 }
 
 pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParams) -> ValidationResult<User<'a>> {

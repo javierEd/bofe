@@ -32,6 +32,7 @@ mod member_commands;
 mod session_commands;
 mod user_commands;
 mod user_email_commands;
+mod user_password_commands;
 
 pub use application_commands::*;
 pub(crate) use board_commands::*;
@@ -45,6 +46,7 @@ pub(crate) use member_commands::*;
 pub use session_commands::*;
 pub use user_commands::*;
 pub(crate) use user_email_commands::*;
+pub(crate) use user_password_commands::*;
 
 use crate::config::{CACHE_CONFIG, STORAGE_CONFIG};
 use crate::constants::STRIP_MARKDOWN_RULES;

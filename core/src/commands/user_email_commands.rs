@@ -2,30 +2,23 @@ use validator::{Validate, ValidationErrors};
 
 use crate::db_pool;
 use crate::enums::{ConfirmationAction, CountryCode, LanguageCode};
-use crate::models::User;
+use crate::models::{Confirmation, User};
 use crate::params::{ConfirmationParams, UpdateEmailParams};
 
-use super::{OrValidationErrors, ValidationResult, finish_confirmation, get_confirmation_by_id, remove_user_cache};
+use super::{OrValidationErrors, ValidationResult, finish_confirmation, insert_confirmation, remove_user_cache};
 
 pub async fn confirm_user_email<'a>(
     user: &User<'_>,
     confirmation_params: ConfirmationParams,
 ) -> ValidationResult<User<'a>> {
-    confirmation_params.validate()?;
-
-    let confirmation = get_confirmation_by_id(confirmation_params.id)
-        .await
-        .map_err(|_| ValidationErrors::new())?;
-
-    if confirmation.user_id != user.id {
-        return Err(ValidationErrors::new());
-    }
-
     finish_confirmation(
-        &confirmation,
+        confirmation_params,
         ConfirmationAction::Email,
-        &confirmation_params.code,
-        async move || {
+        async move |confirmation| {
+            if confirmation.user_id != user.id {
+                return Err(ValidationErrors::new());
+            }
+
             let db_pool = db_pool().await;
 
             let updated_user = sqlx::query_as!(
@@ -58,6 +51,14 @@ pub async fn confirm_user_email<'a>(
         },
     )
     .await
+}
+
+pub async fn send_user_email_confirmation<'a>(user: &User<'_>) -> sqlx::Result<Confirmation<'a>> {
+    if user.email_is_confirmed() {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    insert_confirmation(user, ConfirmationAction::Email).await
 }
 
 pub async fn update_user_email<'a>(user: &User<'_>, params: UpdateEmailParams) -> ValidationResult<User<'a>> {
