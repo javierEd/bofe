@@ -60,10 +60,13 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
-    pub(crate) async fn push_password_changed(&self, user: &User<'_>) {
+    pub(crate) async fn push_password_changed(&self, user: &User<'_>, new_password: Option<String>) {
         self.password_changed
             .clone()
-            .push(PasswordChangedJob { user_id: user.id })
+            .push(PasswordChangedJob {
+                user_id: user.id,
+                new_password,
+            })
             .await
             .expect("Could not store job");
     }
@@ -88,4 +91,5 @@ pub struct NewUserJob {
 #[derive(Deserialize, Serialize)]
 pub struct PasswordChangedJob {
     pub user_id: Uuid,
+    pub new_password: Option<String>,
 }

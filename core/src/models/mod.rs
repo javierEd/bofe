@@ -51,6 +51,7 @@ impl CardLabel {
     }
 }
 
+#[derive(Clone)]
 pub struct Confirmation<'a> {
     pub id: Uuid,
     pub user_id: Uuid,
