@@ -7,7 +7,8 @@ use validator::{Validate, ValidationErrors};
 
 use crate::constants::*;
 use crate::db_pool;
-use crate::enums::BoardVisibility;
+use crate::enums::{ActivityAction, BoardVisibility};
+use crate::jobs_storage;
 use crate::models::{Board, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::BoardParams;
@@ -53,7 +54,7 @@ async fn board_slug_exists(user: &User<'_>, board: Option<&Board<'_>>, slug: &st
     .is_ok()
 }
 
-pub async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bool> {
+pub(crate) async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bool> {
     if !board.is_editable(user) {
         return Err(sqlx::Error::RowNotFound);
     }
@@ -131,7 +132,7 @@ async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
     ty = "AsyncRedisCache<UuidAndString, Board<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG).await }"##
 )]
-pub async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> sqlx::Result<Board<'static>> {
+pub(crate) async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> sqlx::Result<Board<'static>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -153,7 +154,7 @@ pub async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> sqlx::Re
     .await
 }
 
-pub async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+pub(crate) async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
     let board = get_board_by_id(id).await?;
 
     if board.is_visible(target_user).await {
@@ -163,7 +164,10 @@ pub async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
     }
 }
 
-pub async fn get_visible_board_by_slug<'a>(slug: &str, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
+pub(crate) async fn get_visible_board_by_slug<'a>(
+    slug: &str,
+    target_user: Option<&User<'_>>,
+) -> sqlx::Result<Board<'a>> {
     let board = get_board_by_slug(slug).await?;
 
     if board.is_visible(target_user).await {
@@ -173,7 +177,7 @@ pub async fn get_visible_board_by_slug<'a>(slug: &str, target_user: Option<&User
     }
 }
 
-pub async fn get_visible_board_by_user_and_slug<'a>(
+pub(crate) async fn get_visible_board_by_user_and_slug<'a>(
     user: &User<'_>,
     slug: &str,
     target_user: Option<&User<'_>>,
@@ -187,7 +191,7 @@ pub async fn get_visible_board_by_user_and_slug<'a>(
     }
 }
 
-pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
+pub(crate) async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
     params.validate()?;
 
     let mut validation_errors = ValidationErrors::new();
@@ -210,7 +214,7 @@ pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> Validatio
 
     let db_pool = db_pool().await;
 
-    sqlx::query_as!(
+    let board = sqlx::query_as!(
         Board,
         r#"INSERT INTO boards (user_id, name, slug, description, visibility) VALUES ($1, $2, $3, $4, $5)
         RETURNING
@@ -230,10 +234,17 @@ pub async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> Validatio
     )
     .fetch_one(db_pool)
     .await
-    .or_validation_errors()
+    .or_validation_errors()?;
+
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::CreateBoard, &board, &board)
+        .await;
+
+    Ok(board)
 }
 
-pub async fn paginate_boards<'a>(
+pub(crate) async fn paginate_boards<'a>(
     cursor_params: CursorParams,
     member_user: Option<&User<'_>>,
     target_user: Option<&User<'_>>,
@@ -301,8 +312,20 @@ async fn remove_board_cache(board: &Board<'_>) {
     );
 }
 
-pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
+pub(crate) async fn update_board<'a>(
+    user: &User<'_>,
+    board: &Board<'a>,
+    params: BoardParams,
+) -> ValidationResult<Board<'a>> {
     params.validate()?;
+
+    if params.name == board.name
+        && params.slug == board.slug
+        && params.description == board.description
+        && params.visibility == board.visibility
+    {
+        return Ok(board.clone());
+    }
 
     let mut validation_errors = ValidationErrors::new();
 
@@ -352,7 +375,16 @@ pub async fn update_board<'a>(user: &User<'_>, board: &Board<'_>, params: BoardP
 
     remove_board_cache(board).await;
 
-    let _ = notify_board_channel(&updated_board).await;
+    jobs_storage()
+        .await
+        .push_activity(
+            user,
+            &updated_board,
+            ActivityAction::UpdateBoard,
+            &updated_board,
+            &updated_board,
+        )
+        .await;
 
     Ok(updated_board)
 }

@@ -2,17 +2,20 @@ use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
-use crate::db_pool;
+use crate::enums::ActivityAction;
 use crate::models::{Board, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
+use crate::{db_pool, jobs_storage};
 
-use super::{OrValidationErrors, ValidationResult, get_visible_board_by_id, notify_board_channel};
+use super::{OrValidationErrors, ValidationResult, get_visible_board_by_id};
 
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
     if !list.is_editable(user).await? {
         return Err(sqlx::Error::RowNotFound);
     }
+
+    let board = list.board().await?;
 
     let db_pool = db_pool().await;
 
@@ -23,7 +26,10 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&list.board().await?).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::DeleteList, list, &())
+        .await;
 
     Ok(true)
 }
@@ -118,7 +124,10 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&board).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::CreateList, &list, &list)
+        .await;
 
     Ok(list)
 }
@@ -163,8 +172,12 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
     .await
 }
 
-pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateListParams) -> ValidationResult<List<'a>> {
+pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
+
+    if params.name == list.name {
+        return Ok(list.clone());
+    }
 
     let mut validation_errors = ValidationErrors::new();
 
@@ -184,7 +197,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
 
     let db_pool = db_pool().await;
 
-    let list = sqlx::query_as!(
+    let updated_list = sqlx::query_as!(
         List,
         "UPDATE lists SET name = $2 WHERE id = $1 RETURNING *",
         list.id, // $1
@@ -194,15 +207,20 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'_>, params: UpdateLis
     .await
     .or_validation_errors()?;
 
-    let _ = notify_board_channel(&board).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::UpdateList, &updated_list, &updated_list)
+        .await;
 
-    Ok(list)
+    Ok(updated_list)
 }
 
 pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
     if !list.is_movable(user).await.or_validation_errors()? || position < 0 || position == list.position {
         return Err(ValidationErrors::new());
     }
+
+    let board = list.board().await.or_validation_errors()?;
 
     let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
 
@@ -238,7 +256,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
         .or_validation_errors()?;
     }
 
-    let list = sqlx::query_as!(
+    let updated_list = sqlx::query_as!(
         List,
         "UPDATE lists SET position = $1 WHERE id = $2 RETURNING *",
         position, // $1
@@ -250,7 +268,16 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&list.board().await.or_validation_errors()?).await;
+    jobs_storage()
+        .await
+        .push_activity(
+            user,
+            &board,
+            ActivityAction::UpdateListPosition,
+            &updated_list,
+            &updated_list,
+        )
+        .await;
 
-    Ok(list)
+    Ok(updated_list)
 }

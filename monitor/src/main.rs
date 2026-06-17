@@ -24,6 +24,14 @@ async fn main() {
 
     let jobs_storage = jobs_storage().await;
 
+    let activity_worker = |index| {
+        WorkerBuilder::new(format!("activity-{index}"))
+            .backend(jobs_storage.activity.clone())
+            .enable_tracing()
+            .concurrency(1)
+            .build(handlers::activity)
+    };
+
     let new_confirmation_worker = |index| {
         WorkerBuilder::new(format!("new-confirmation-{index}"))
             .backend(jobs_storage.new_confirmation.clone())
@@ -57,6 +65,7 @@ async fn main() {
     };
 
     Monitor::new()
+        .register(activity_worker)
         .register(new_confirmation_worker)
         .register(new_session_worker)
         .register(new_user_worker)

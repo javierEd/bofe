@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::graphql::IDExt;
 use crate::graphql::context::CustomExt;
 use crate::graphql::guards::UserGuard;
-use crate::graphql::objects::{BoardObject, CardObject, InfoObject, LabelObject, ListObject, UserObject};
+use crate::graphql::objects::*;
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
@@ -13,6 +13,38 @@ pub struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
+    async fn activities(
+        &self,
+        ctx: &Context<'_>,
+        after: Option<Uuid>,
+        first: Option<i32>,
+    ) -> Result<Connection<Uuid, ActivityObject, EmptyFields, EmptyFields>> {
+        let target_user = ctx.user_opt();
+
+        query(
+            after.map(|a| a.to_string()),
+            None,
+            first,
+            None,
+            |after, _before, first, _last| async move {
+                let first = first.map(|v| v as u8).unwrap_or(10);
+                let cursor_page =
+                    commands::paginate_activities(CursorParams::new(after, first), None, None, target_user).await;
+                let mut connection = Connection::new(false, cursor_page.has_next_page);
+
+                connection.edges.extend(
+                    cursor_page
+                        .nodes
+                        .into_iter()
+                        .map(|activity| Edge::new(activity.id, ActivityObject(activity))),
+                );
+
+                Ok::<_, async_graphql::Error>(connection)
+            },
+        )
+        .await
+    }
+
     async fn board(&self, ctx: &Context<'_>, id: ID) -> Result<Option<BoardObject<'_>>> {
         let user = ctx.user_opt();
         let id = id.try_into_uuid()?;

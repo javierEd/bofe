@@ -14,7 +14,7 @@ pub async fn confirm_user_password_reset(confirmation_params: ConfirmationParams
         ConfirmationAction::PasswordReset,
         async move |confirmation| {
             let db_pool = db_pool().await;
-            let user = confirmation.user().await;
+            let user = confirmation.user().await.or_validation_errors()?;
             let new_password = random_string(12..=16);
 
             sqlx::query!(

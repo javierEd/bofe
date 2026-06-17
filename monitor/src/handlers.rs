@@ -4,11 +4,20 @@ use std::str::FromStr;
 use apalis::prelude::BoxDynError;
 
 use bofe_core::commands;
-use bofe_core::jobs::{NewConfirmationJob, NewSessionJob, NewUserJob, PasswordChangedJob};
+use bofe_core::jobs::{ActivityJob, NewConfirmationJob, NewSessionJob, NewUserJob, PasswordChangedJob};
 
 use crate::ip_geo::IpGeo;
 use crate::mailer::{admin_emails, send_new_session_email, send_welcome_email};
 use crate::mailer::{send_new_confirmation_email, send_password_changed_email};
+
+pub async fn activity(job: ActivityJob) -> Result<(), BoxDynError> {
+    let user = commands::get_user_by_id(job.user_id).await?;
+    let board = commands::get_board_by_id(job.board_id).await?;
+
+    commands::insert_activity(&user, &board, job.action, job.target_id, &job.data.unwrap_or_default()).await?;
+
+    Ok(())
+}
 
 pub async fn new_confirmation(job: NewConfirmationJob) -> Result<(), BoxDynError> {
     let confirmation = commands::get_confirmation_by_id(job.confirmation_id).await?;

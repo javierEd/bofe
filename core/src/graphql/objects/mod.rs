@@ -8,11 +8,13 @@ use crate::models::{Confirmation, List, Member, Session};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
+mod activity_object;
 mod board_object;
 mod card_object;
 mod label_object;
 mod user_object;
 
+pub use activity_object::ActivityObject;
 pub use board_object::BoardObject;
 pub use card_object::CardObject;
 pub use label_object::LabelObject;
