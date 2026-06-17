@@ -150,7 +150,7 @@ pub(crate) async fn paginate_activities(
                             OR (SELECT id FROM members WHERE board_id = b.id AND user_id = $4 LIMIT 1) IS NOT NULL
                         END
                     )
-                ORDER BY a.created_at, a.target_id DESC LIMIT $5"#,
+                ORDER BY a.created_at DESC LIMIT $5"#,
                 cursor_created_at, // $1
                 user_id,           // $2
                 board_id,          // $3
