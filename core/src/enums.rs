@@ -3,8 +3,25 @@ use serde::{Deserialize, Serialize};
 
 use crate::L10n;
 
-#[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Copy, Eq))]
-#[derive(sqlx::Type, Clone, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[sqlx(type_name = "activity_action", rename_all = "snake_case")]
+pub enum ActivityAction {
+    CreateBoard,
+    UpdateBoard,
+    CreateList,
+    UpdateList,
+    UpdateListPosition,
+    DeleteList,
+    CreateCard,
+    UpdateCard,
+    UpdateCardList,
+    UpdateCardPosition,
+    DeleteCard,
+}
+
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, Clone, Copy, Deserialize, Eq, Serialize, PartialEq)]
 #[sqlx(type_name = "board_visibility", rename_all = "lowercase")]
 pub enum BoardVisibility {
     Private,
@@ -20,8 +37,8 @@ pub enum ConfirmationAction {
     PasswordReset,
 }
 
-#[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Eq))]
-#[derive(sqlx::Type, strum::Display, Clone, Copy, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, strum::Display, Clone, Copy, Deserialize, Eq, Serialize, PartialEq)]
 #[sqlx(type_name = "country_code")]
 pub enum CountryCode {
     AF,
@@ -285,8 +302,8 @@ impl CountryCode {
     }
 }
 
-#[cfg_attr(feature = "graphql", derive(async_graphql::Enum, Copy, Eq))]
-#[derive(sqlx::Type, Clone, Default, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, Clone, Copy, Default, Deserialize, Eq, Serialize, PartialEq)]
 #[sqlx(type_name = "language_code", rename_all = "lowercase")]
 pub enum LanguageCode {
     #[default]

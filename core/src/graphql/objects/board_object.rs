@@ -9,7 +9,7 @@ use crate::graphql::context::CustomExt;
 use crate::models::Board;
 use crate::pagination::CursorParams;
 
-use super::{LabelObject, ListObject, MemberObject, UserObject};
+use super::{ActivityObject, LabelObject, ListObject, MemberObject, UserObject};
 
 pub struct BoardObject<'a>(pub Board<'a>);
 
@@ -21,6 +21,10 @@ impl BoardObject<'_> {
 
     async fn user(&self) -> Result<UserObject<'_>> {
         Ok(self.0.user().await.map(UserObject)?)
+    }
+
+    async fn last_activity(&self) -> Option<ActivityObject> {
+        self.0.last_activity().await.map(ActivityObject).ok()
     }
 
     async fn name(&self) -> &str {

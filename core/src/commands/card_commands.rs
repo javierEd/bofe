@@ -2,10 +2,11 @@ use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 use crate::constants::ERROR_IS_INVALID;
-use crate::db_pool;
+use crate::enums::ActivityAction;
 use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
 use crate::params::CardParams;
+use crate::{db_pool, jobs_storage};
 
 use super::*;
 
@@ -13,6 +14,8 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     if !card.is_editable(user) {
         return Err(sqlx::Error::RowNotFound);
     }
+
+    let board = card.board().await?;
 
     let db_pool = db_pool().await;
 
@@ -23,7 +26,10 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
-    let _ = notify_board_channel(&card.board().await?).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::DeleteCard, card, &())
+        .await;
 
     Ok(true)
 }
@@ -81,6 +87,8 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
         .await
         .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
+    let board = list.board().await.or_validation_errors()?;
+
     let content = params.content.trim();
     let position = suggest_card_position(&list).await;
 
@@ -100,7 +108,10 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let _ = insert_card_labels(&card, &labels).await;
 
-    let _ = notify_board_channel(&list.board().await.or_validation_errors()?).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::CreateCard, &card, &card)
+        .await;
 
     Ok(card)
 }
@@ -145,8 +156,18 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) ->
     .await
 }
 
-pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParams) -> ValidationResult<Card<'a>> {
+pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
+
+    let mut params_label_ids = params.label_ids.clone();
+    let mut card_label_ids = card.all_label_ids().await.unwrap_or_default();
+
+    params_label_ids.sort();
+    card_label_ids.sort();
+
+    if params.list_id == card.list_id && params.content == card.content && params_label_ids == card_label_ids {
+        return Ok(card.clone());
+    }
 
     let mut validation_errors = ValidationErrors::new();
 
@@ -178,11 +199,13 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
         .await
         .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
+    let board = card.board().await.or_validation_errors()?;
+
     let content = params.content.trim();
 
     let db_pool = db_pool().await;
 
-    let card = sqlx::query_as!(
+    let updated_card = sqlx::query_as!(
         Card,
         "UPDATE cards SET list_id = $2, content = $3, position = $4 WHERE id = $1 RETURNING *",
         card.id,        // $1
@@ -194,11 +217,14 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'_>, params: CardParam
     .await
     .or_validation_errors()?;
 
-    let _ = update_card_labels(&card, &labels).await;
+    let _ = update_card_labels(&updated_card, &labels).await;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::UpdateCard, &updated_card, &updated_card)
+        .await;
 
-    Ok(card)
+    Ok(updated_card)
 }
 
 pub async fn update_card_list<'a>(
@@ -217,6 +243,8 @@ pub async fn update_card_list<'a>(
     {
         return Err(ValidationErrors::new());
     }
+
+    let board = card.board().await.or_validation_errors()?;
 
     let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
 
@@ -256,7 +284,16 @@ pub async fn update_card_list<'a>(
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
+    jobs_storage()
+        .await
+        .push_activity(
+            user,
+            &board,
+            ActivityAction::UpdateCardList,
+            &updated_card,
+            &updated_card,
+        )
+        .await;
 
     Ok(updated_card)
 }
@@ -265,6 +302,8 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     if !card.is_movable(user).await.or_validation_errors()? || position < 0 || position == card.position {
         return Err(ValidationErrors::new());
     }
+
+    let board = card.board().await.or_validation_errors()?;
 
     let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
 
@@ -300,7 +339,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
         .or_validation_errors()?;
     }
 
-    let card = sqlx::query_as!(
+    let updated_card = sqlx::query_as!(
         Card,
         "UPDATE cards SET position = $1 WHERE id = $2 RETURNING *",
         position, // $1
@@ -312,7 +351,16 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    let _ = notify_board_channel(&card.board().await.or_validation_errors()?).await;
+    jobs_storage()
+        .await
+        .push_activity(
+            user,
+            &board,
+            ActivityAction::UpdateCardPosition,
+            &updated_card,
+            &updated_card,
+        )
+        .await;
 
-    Ok(card)
+    Ok(updated_card)
 }

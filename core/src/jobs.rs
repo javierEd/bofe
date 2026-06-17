@@ -1,18 +1,19 @@
 use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{
-    config::MONITOR_CONFIG,
-    models::{Confirmation, Session, User},
-};
+use crate::config::MONITOR_CONFIG;
+use crate::enums::ActivityAction;
+use crate::models::{Board, Card, Confirmation, List, Session, User};
 
 pub struct JobsStorage {
     pub new_confirmation: RedisStorage<NewConfirmationJob>,
     pub new_session: RedisStorage<NewSessionJob>,
     pub new_user: RedisStorage<NewUserJob>,
     pub password_changed: RedisStorage<PasswordChangedJob>,
+    pub activity: RedisStorage<ActivityJob>,
 }
 
 impl JobsStorage {
@@ -22,6 +23,7 @@ impl JobsStorage {
             new_session: Self::storage().await,
             new_user: Self::storage().await,
             password_changed: Self::storage().await,
+            activity: Self::storage().await,
         }
     }
 
@@ -70,6 +72,24 @@ impl JobsStorage {
             .await
             .expect("Could not store job");
     }
+
+    pub(crate) async fn push_activity<T, D>(
+        &self,
+        user: &User<'_>,
+        board: &Board<'_>,
+        action: ActivityAction,
+        target: &T,
+        data: &D,
+    ) where
+        ActivityJob: ActivityJobExt<T, D>,
+        D: Serialize,
+    {
+        self.activity
+            .clone()
+            .push(ActivityJob::new(user, board, action, target, data))
+            .await
+            .expect("Could not store job");
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -92,4 +112,64 @@ pub struct NewUserJob {
 pub struct PasswordChangedJob {
     pub user_id: Uuid,
     pub new_password: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ActivityJob {
+    pub user_id: Uuid,
+    pub board_id: Uuid,
+    pub action: ActivityAction,
+    pub target_id: Uuid,
+    pub data: Option<Value>,
+}
+
+pub(crate) trait ActivityJobExt<T, D = ()> {
+    fn new(user: &User<'_>, board: &Board<'_>, action: ActivityAction, target: &T, data: &D) -> Self
+    where
+        D: Serialize;
+}
+
+impl<D> ActivityJobExt<Board<'_>, D> for ActivityJob {
+    fn new(user: &User, board: &Board, action: ActivityAction, target: &Board, data: &D) -> Self
+    where
+        D: Serialize,
+    {
+        Self {
+            user_id: user.id,
+            board_id: board.id,
+            action,
+            target_id: target.id,
+            data: serde_json::to_value(data).ok(),
+        }
+    }
+}
+
+impl<D> ActivityJobExt<Card<'_>, D> for ActivityJob {
+    fn new(user: &User, board: &Board, action: ActivityAction, target: &Card, data: &D) -> Self
+    where
+        D: Serialize,
+    {
+        Self {
+            user_id: user.id,
+            board_id: board.id,
+            action,
+            target_id: target.id,
+            data: serde_json::to_value(data).ok(),
+        }
+    }
+}
+
+impl<D> ActivityJobExt<List<'_>, D> for ActivityJob {
+    fn new(user: &User, board: &Board, action: ActivityAction, target: &List, data: &D) -> Self
+    where
+        D: Serialize,
+    {
+        Self {
+            user_id: user.id,
+            board_id: board.id,
+            action,
+            target_id: target.id,
+            data: serde_json::to_value(data).ok(),
+        }
+    }
 }

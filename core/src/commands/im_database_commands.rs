@@ -4,8 +4,16 @@ use redis::{AsyncTypedCommands, RedisResult};
 use crate::im_db_client;
 use crate::models::Board;
 
+pub async fn create_or_join_board_activities_channel(board: &Board<'_>) -> RedisResult<PubSub> {
+    pubsub_subscribe(&format!("board_activities:{}", board.id)).await
+}
+
 pub async fn create_or_join_board_channel(board: &Board<'_>) -> RedisResult<PubSub> {
     pubsub_subscribe(&format!("board:{}", board.id)).await
+}
+
+pub async fn notify_board_activities_channel(board: &Board<'_>) -> RedisResult<usize> {
+    pubsub_publish(&format!("board_activities:{}", board.id), "UPDATED").await
 }
 
 pub async fn notify_board_channel(board: &Board<'_>) -> RedisResult<usize> {

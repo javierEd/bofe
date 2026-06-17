@@ -20,6 +20,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use validator::{ValidationError, ValidationErrors};
 
+mod activity_commands;
 mod application_commands;
 mod board_commands;
 mod card_commands;
@@ -34,8 +35,9 @@ mod user_commands;
 mod user_email_commands;
 mod user_password_commands;
 
+pub use activity_commands::*;
 pub use application_commands::*;
-pub(crate) use board_commands::*;
+pub use board_commands::*;
 pub(crate) use card_commands::*;
 pub(crate) use card_label_commands::*;
 pub use confirmation_commands::*;

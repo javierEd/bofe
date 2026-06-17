@@ -48,7 +48,7 @@ pub async fn send_email(to: &str, subject: &str, body: &str) -> anyhow::Result<(
 }
 
 pub async fn send_new_confirmation_email(confirmation: &Confirmation<'_>, code: &str) -> anyhow::Result<()> {
-    let user = confirmation.user().await;
+    let user = confirmation.user().await?;
     let l10n = user.language_code.to_l10n();
 
     let action_text = match confirmation.action {

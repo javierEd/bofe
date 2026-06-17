@@ -1,11 +1,13 @@
 use std::borrow::Cow;
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::commands;
 use crate::models::{Board, Label, List, User};
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Card<'a> {
     pub id: Uuid,
     pub list_id: Uuid,
@@ -26,6 +28,12 @@ impl Card<'_> {
 
     pub async fn user(&self) -> sqlx::Result<User<'_>> {
         commands::get_user_by_id(self.user_id).await
+    }
+
+    pub async fn all_label_ids(&self) -> sqlx::Result<Vec<Uuid>> {
+        self.all_labels()
+            .await
+            .map(|labels| labels.iter().map(|label| label.id).collect())
     }
 
     pub async fn all_labels(&self) -> sqlx::Result<Vec<Label<'_>>> {

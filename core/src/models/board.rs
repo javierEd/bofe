@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::commands;
 use crate::enums::BoardVisibility;
+use crate::models::Activity;
 
 use super::User;
 
@@ -105,5 +106,9 @@ impl Board<'_> {
 
     pub async fn user(&self) -> sqlx::Result<User<'_>> {
         commands::get_user_by_id(self.user_id).await
+    }
+
+    pub async fn last_activity(&self) -> sqlx::Result<Activity> {
+        commands::get_last_activity_by_board(self).await
     }
 }

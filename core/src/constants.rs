@@ -33,6 +33,7 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
     "users",
 ];
 
+pub const CACHE_PREFIX_GET_ACTIVITY_BY_ID: &str = "get_activity_by_id";
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
