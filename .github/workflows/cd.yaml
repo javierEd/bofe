@@ -28,7 +28,7 @@ jobs:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-rust
             - run: cargo build --package bofe-api --release
             - uses: actions/upload-artifact@v7
@@ -51,7 +51,7 @@ jobs:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-rust
             - run: cargo build --package bofe-cli --release
             - uses: actions/upload-artifact@v7
@@ -74,7 +74,7 @@ jobs:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-rust
             - run: cargo build --package bofe-monitor --release
             - uses: actions/upload-artifact@v7
@@ -98,7 +98,7 @@ jobs:
                     - 5432:5432
                 options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: actions/download-artifact@v8
               with:
                   name: bofe_cli_build
@@ -117,7 +117,7 @@ jobs:
         needs: [dump_graphql_schema]
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: actions/download-artifact@v8
               with:
                   name: bofe_graphql_schema
@@ -135,7 +135,7 @@ jobs:
         needs: [build_api, build_cli, build_monitor]
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: actions/download-artifact@v8
               with:
                   name: bofe_api_build
