@@ -1,13 +1,17 @@
-use redis::aio::PubSub;
 use redis::{AsyncTypedCommands, RedisResult};
+
+#[cfg(feature = "graphql")]
+use redis::aio::PubSub;
 
 use crate::im_db_client;
 use crate::models::Board;
 
+#[cfg(feature = "graphql")]
 pub async fn create_or_join_board_activities_channel(board: &Board<'_>) -> RedisResult<PubSub> {
     pubsub_subscribe(&format!("board_activities:{}", board.id)).await
 }
 
+#[cfg(feature = "graphql")]
 pub async fn create_or_join_board_channel(board: &Board<'_>) -> RedisResult<PubSub> {
     pubsub_subscribe(&format!("board:{}", board.id)).await
 }
@@ -27,6 +31,7 @@ async fn pubsub_publish(channel: &str, message: &str) -> RedisResult<usize> {
     conn.publish(channel, message).await
 }
 
+#[cfg(feature = "graphql")]
 async fn pubsub_subscribe(channel: &str) -> RedisResult<PubSub> {
     let client = im_db_client();
     let mut pubsub = client.get_async_pubsub().await?;

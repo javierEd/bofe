@@ -1,16 +1,26 @@
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::{Validate, ValidationErrors};
 
-use crate::constants::{CACHE_PREFIX_GET_LABEL_BY_ID, ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
+use crate::constants::CACHE_PREFIX_GET_LABEL_BY_ID;
 use crate::db_pool;
-use crate::models::{Board, Label, User};
+use crate::models::Label;
+
+#[cfg(feature = "graphql")]
+use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
+#[cfg(feature = "graphql")]
+use crate::models::{Board, User};
+#[cfg(feature = "graphql")]
 use crate::pagination::{CursorPage, CursorParams};
+#[cfg(feature = "graphql")]
 use crate::params::{LabelParams, UpdateLabelParams};
 
 use super::*;
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn delete_label(user: &User<'_>, label: &Label<'_>) -> sqlx::Result<bool> {
     if !label.is_editable(user).await? {
         return Err(sqlx::Error::RowNotFound);
@@ -32,6 +42,7 @@ pub(crate) async fn delete_label(user: &User<'_>, label: &Label<'_>) -> sqlx::Re
     Ok(true)
 }
 
+#[cfg(feature = "graphql")]
 pub async fn get_all_labels<'a>(board: &Board<'a>) -> sqlx::Result<Vec<Label<'a>>> {
     let db_pool = db_pool().await;
 
@@ -44,6 +55,7 @@ pub async fn get_all_labels<'a>(board: &Board<'a>) -> sqlx::Result<Vec<Label<'a>
     .await
 }
 
+#[cfg(feature = "graphql")]
 async fn label_name_exists(board: &Board<'_>, label: Option<&Label<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let label_id = label.map(|l| l.id);
@@ -76,6 +88,7 @@ pub async fn get_label_by_id<'a>(id: Uuid) -> sqlx::Result<Label<'a>> {
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub async fn get_visible_label_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Label<'a>> {
     let label = get_label_by_id(id).await?;
 
@@ -86,13 +99,19 @@ pub async fn get_visible_label_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
     }
 }
 
+#[cfg(feature = "graphql")]
 pub async fn get_visible_labels_by_ids<'a>(
     ids: &[Uuid],
     target_user: Option<&User<'_>>,
 ) -> sqlx::Result<Vec<Label<'a>>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
     futures::future::try_join_all(ids.iter().map(|id| get_visible_label_by_id(*id, target_user))).await
 }
 
+#[cfg(feature = "graphql")]
 pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> ValidationResult<Label<'a>> {
     params.validate()?;
 
@@ -137,6 +156,7 @@ pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> Validatio
     Ok(label)
 }
 
+#[cfg(feature = "graphql")]
 pub async fn paginate_labels<'a>(cursor_params: CursorParams, board: &Board<'a>) -> CursorPage<Label<'a>> {
     let db_pool = db_pool().await;
 
@@ -164,12 +184,14 @@ pub async fn paginate_labels<'a>(cursor_params: CursorParams, board: &Board<'a>)
     .await
 }
 
+#[cfg(feature = "graphql")]
 async fn remove_label_cache(label: &Label<'_>) {
     GET_LABEL_BY_ID
         .cache_remove(CACHE_PREFIX_GET_LABEL_BY_ID, &label.id)
         .await;
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_label<'a>(
     user: &User<'_>,
     label: &Label<'_>,

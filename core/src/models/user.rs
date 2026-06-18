@@ -1,15 +1,22 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+
+#[cfg(feature = "graphql")]
 use std::path::PathBuf;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use url::Url;
 use uuid::Uuid;
 
-use crate::commands;
-use crate::config::STORAGE_CONFIG;
+#[cfg(feature = "graphql")]
+use url::Url;
+
 use crate::enums::{CountryCode, LanguageCode};
+
+#[cfg(feature = "graphql")]
+use crate::commands;
+#[cfg(feature = "graphql")]
+use crate::config::STORAGE_CONFIG;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct User<'a> {
@@ -34,6 +41,7 @@ impl Display for User<'_> {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl User<'_> {
     pub fn avatar_image(&self, size: u16) -> anyhow::Result<Vec<u8>> {
         commands::get_user_avatar_image(self, size)

@@ -9,6 +9,8 @@ use crate::db_pool;
 use crate::enums::ActivityAction;
 use crate::models::Board;
 use crate::models::{Activity, User};
+
+#[cfg(feature = "graphql")]
 use crate::pagination::{CursorPage, CursorParams};
 
 use super::{notify_board_channel, redis_cache_store};
@@ -107,6 +109,7 @@ pub async fn insert_activity(
     Ok(())
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn paginate_activities(
     cursor_params: CursorParams,
     user: Option<&User<'_>>,

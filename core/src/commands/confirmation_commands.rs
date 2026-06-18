@@ -1,15 +1,27 @@
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::{Validate, ValidationErrors};
 
-use crate::config::CONFIRMATION_CONFIG;
-use crate::constants::ERROR_IS_INVALID;
+use crate::db_pool;
 use crate::enums::ConfirmationAction;
-use crate::models::{Confirmation, User};
-use crate::params::ConfirmationParams;
-use crate::{db_pool, jobs_storage};
+use crate::models::Confirmation;
 
+#[cfg(feature = "graphql")]
+use crate::config::CONFIRMATION_CONFIG;
+#[cfg(feature = "graphql")]
+use crate::constants::ERROR_IS_INVALID;
+#[cfg(feature = "graphql")]
+use crate::jobs_storage;
+#[cfg(feature = "graphql")]
+use crate::models::User;
+#[cfg(feature = "graphql")]
+use crate::params::ConfirmationParams;
+
+#[cfg(feature = "graphql")]
 use super::{ValidationResult, encrypt_password, random_numeric_string};
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn finish_confirmation<'a, F, IF, T>(
     params: ConfirmationParams,
     action: ConfirmationAction,
@@ -92,6 +104,7 @@ pub async fn get_confirmation_by_id<'a>(id: Uuid) -> sqlx::Result<Confirmation<'
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn insert_confirmation<'a>(
     user: &User<'_>,
     action: ConfirmationAction,

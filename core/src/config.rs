@@ -1,14 +1,20 @@
-use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+#[cfg(feature = "graphql")]
+use std::ops::RangeInclusive;
+
 use envconfig::Envconfig;
+
+#[cfg(feature = "graphql")]
 use url::Url;
 
+#[cfg(feature = "graphql")]
 pub(crate) static APPLICATION_CONFIG: LazyLock<ApplicationConfig> =
     LazyLock::new(|| ApplicationConfig::init_from_env().unwrap());
 pub(crate) static CACHE_CONFIG: LazyLock<CacheConfig> = LazyLock::new(|| CacheConfig::init_from_env().unwrap());
+#[cfg(feature = "graphql")]
 pub(crate) static CONFIRMATION_CONFIG: LazyLock<ConfirmationConfig> =
     LazyLock::new(|| ConfirmationConfig::init_from_env().unwrap());
 pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
@@ -16,9 +22,11 @@ pub(crate) static DATABASE_CONFIG: LazyLock<DatabaseConfig> =
 pub(crate) static IM_DATABASE_CONFIG: LazyLock<IMDatabaseConfig> =
     LazyLock::new(|| IMDatabaseConfig::init_from_env().unwrap());
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
+#[cfg(feature = "graphql")]
 pub(crate) static SESSION_CONFIG: LazyLock<SessionConfig> = LazyLock::new(|| SessionConfig::init_from_env().unwrap());
 pub(crate) static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 
+#[cfg(feature = "graphql")]
 #[derive(Envconfig)]
 pub(crate) struct ApplicationConfig {
     #[envconfig(from = "APPLICATION_TOKEN_MIN_LENGTH", default = "64")]
@@ -29,6 +37,7 @@ pub(crate) struct ApplicationConfig {
     ttl_secs: u64,
 }
 
+#[cfg(feature = "graphql")]
 impl ApplicationConfig {
     pub fn token_length(&self) -> RangeInclusive<u8> {
         self.token_min_length..=self.token_max_length
@@ -53,6 +62,7 @@ impl CacheConfig {
     }
 }
 
+#[cfg(feature = "graphql")]
 #[derive(Envconfig)]
 pub(crate) struct ConfirmationConfig {
     #[envconfig(from = "CONFIRMATION_CODE_LENGTH", default = "6")]
@@ -79,6 +89,7 @@ pub(crate) struct MonitorConfig {
     pub redis_url: String,
 }
 
+#[cfg(feature = "graphql")]
 #[derive(Envconfig)]
 pub(crate) struct SessionConfig {
     #[envconfig(from = "SESSION_TOKEN_MIN_LENGTH", default = "64")]
@@ -89,6 +100,7 @@ pub(crate) struct SessionConfig {
     ttl_secs: u64,
 }
 
+#[cfg(feature = "graphql")]
 impl SessionConfig {
     pub fn token_length(&self) -> RangeInclusive<u8> {
         self.token_min_length..=self.token_max_length
@@ -101,6 +113,7 @@ impl SessionConfig {
 
 #[derive(Envconfig)]
 pub(crate) struct StorageConfig {
+    #[cfg(feature = "graphql")]
     #[envconfig(
         from = "STORAGE_FONT_PATH",
         default = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -108,6 +121,7 @@ pub(crate) struct StorageConfig {
     pub font_path: PathBuf,
     #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
+    #[cfg(feature = "graphql")]
     #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/storage/")]
     pub url: Url,
 }

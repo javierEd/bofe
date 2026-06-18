@@ -1,15 +1,28 @@
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::{Validate, ValidationErrors};
 
-use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
-use crate::enums::ActivityAction;
-use crate::models::{Board, List, User};
-use crate::pagination::{CursorPage, CursorParams};
-use crate::params::{ListParams, UpdateListParams};
-use crate::{db_pool, jobs_storage};
+use crate::db_pool;
+use crate::models::List;
 
+#[cfg(feature = "graphql")]
+use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
+#[cfg(feature = "graphql")]
+use crate::enums::ActivityAction;
+#[cfg(feature = "graphql")]
+use crate::jobs_storage;
+#[cfg(feature = "graphql")]
+use crate::models::{Board, User};
+#[cfg(feature = "graphql")]
+use crate::pagination::{CursorPage, CursorParams};
+#[cfg(feature = "graphql")]
+use crate::params::{ListParams, UpdateListParams};
+
+#[cfg(feature = "graphql")]
 use super::{OrValidationErrors, ValidationResult, get_visible_board_by_id};
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
     if !list.is_editable(user).await? {
         return Err(sqlx::Error::RowNotFound);
@@ -34,6 +47,7 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     Ok(true)
 }
 
+#[cfg(feature = "graphql")]
 async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let list_id = list.map(|l| l.id);
@@ -49,6 +63,7 @@ async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str
     .is_ok()
 }
 
+#[cfg(feature = "graphql")]
 pub async fn get_all_lists<'a>(board: &Board<'a>) -> sqlx::Result<Vec<List<'a>>> {
     let db_pool = db_pool().await;
 
@@ -73,6 +88,7 @@ pub async fn get_list_by_id<'a>(id: Uuid) -> sqlx::Result<List<'a>> {
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub async fn get_visible_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<List<'a>> {
     let list = get_list_by_id(id).await?;
 
@@ -83,6 +99,7 @@ pub async fn get_visible_list_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>
     }
 }
 
+#[cfg(feature = "graphql")]
 pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
@@ -132,6 +149,7 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
     Ok(list)
 }
 
+#[cfg(feature = "graphql")]
 async fn suggest_list_position(board: &Board<'_>) -> i16 {
     let db_pool = db_pool().await;
 
@@ -145,6 +163,7 @@ async fn suggest_list_position(board: &Board<'_>) -> i16 {
     .unwrap_or(0)
 }
 
+#[cfg(feature = "graphql")]
 pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) -> CursorPage<List<'a>> {
     let db_pool = db_pool().await;
 
@@ -172,6 +191,7 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
@@ -215,6 +235,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateLis
     Ok(updated_list)
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position: i16) -> ValidationResult<List<'a>> {
     if !list.is_movable(user).await.or_validation_errors()? || position < 0 || position == list.position {
         return Err(ValidationErrors::new());
