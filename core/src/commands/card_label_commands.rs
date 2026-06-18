@@ -1,7 +1,11 @@
+#[cfg(feature = "graphql")]
 use uuid::Uuid;
 
 use crate::db_pool;
-use crate::models::{Card, CardLabel, Label};
+use crate::models::{Card, CardLabel};
+
+#[cfg(feature = "graphql")]
+use crate::models::Label;
 
 pub async fn get_all_card_labels(card: &Card<'_>) -> sqlx::Result<Vec<CardLabel>> {
     let db_pool = db_pool().await;
@@ -14,6 +18,8 @@ pub async fn get_all_card_labels(card: &Card<'_>) -> sqlx::Result<Vec<CardLabel>
     .fetch_all(db_pool)
     .await
 }
+
+#[cfg(feature = "graphql")]
 pub async fn insert_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::Result<()> {
     if labels.is_empty() {
         return Ok(());
@@ -46,6 +52,7 @@ pub async fn insert_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::
     Ok(())
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::Result<()> {
     insert_card_labels(card, labels).await?;
 

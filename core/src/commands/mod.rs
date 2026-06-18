@@ -1,29 +1,42 @@
 use std::borrow::Cow;
 use std::fmt::Display;
 use std::future::Future;
+
+#[cfg(feature = "graphql")]
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use ab_glyph::{FontRef, PxScale};
-use argon2::password_hash::SaltString;
-use argon2::password_hash::rand_core::OsRng;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use bytesize::ByteSize;
 use cached::async_sync::OnceCell;
 use cached::{AsyncRedisCache, ConcurrentCachedAsync};
-use image::{ImageBuffer, Pixel, Rgb, RgbImage};
-use imageproc::drawing::{draw_filled_rect_mut, draw_text_mut, text_size};
-use imageproc::rect::Rect;
-use rand::distr::Alphanumeric;
-use rand::distr::uniform::SampleRange;
-use rand::{RngExt, rng};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+
+#[cfg(feature = "graphql")]
+use ab_glyph::{FontRef, PxScale};
+#[cfg(feature = "graphql")]
+use argon2::PasswordHasher;
+#[cfg(feature = "graphql")]
+use argon2::password_hash::SaltString;
+#[cfg(feature = "graphql")]
+use argon2::password_hash::rand_core::OsRng;
+#[cfg(feature = "graphql")]
+use image::{ImageBuffer, Pixel, Rgb, RgbImage};
+#[cfg(feature = "graphql")]
+use imageproc::drawing::{draw_filled_rect_mut, draw_text_mut, text_size};
+#[cfg(feature = "graphql")]
+use imageproc::rect::Rect;
+#[cfg(feature = "graphql")]
+use rand::distr::Alphanumeric;
+#[cfg(feature = "graphql")]
+use rand::distr::uniform::SampleRange;
+#[cfg(feature = "graphql")]
+use rand::{RngExt, rng};
+#[cfg(feature = "graphql")]
 use validator::{ValidationError, ValidationErrors};
 
 mod activity_commands;
-mod application_commands;
 mod board_commands;
-mod card_commands;
 mod card_label_commands;
 mod confirmation_commands;
 mod im_database_commands;
@@ -32,13 +45,18 @@ mod list_commands;
 mod member_commands;
 mod session_commands;
 mod user_commands;
+
+#[cfg(feature = "graphql")]
+mod application_commands;
+#[cfg(feature = "graphql")]
+mod card_commands;
+#[cfg(feature = "graphql")]
 mod user_email_commands;
+#[cfg(feature = "graphql")]
 mod user_password_commands;
 
 pub use activity_commands::*;
-pub use application_commands::*;
 pub use board_commands::*;
-pub(crate) use card_commands::*;
 pub(crate) use card_label_commands::*;
 pub use confirmation_commands::*;
 pub(crate) use im_database_commands::*;
@@ -47,12 +65,20 @@ pub(crate) use list_commands::*;
 pub(crate) use member_commands::*;
 pub use session_commands::*;
 pub use user_commands::*;
+
+#[cfg(feature = "graphql")]
+pub use application_commands::*;
+#[cfg(feature = "graphql")]
+pub(crate) use card_commands::*;
+#[cfg(feature = "graphql")]
 pub(crate) use user_email_commands::*;
+#[cfg(feature = "graphql")]
 pub(crate) use user_password_commands::*;
 
 use crate::config::{CACHE_CONFIG, STORAGE_CONFIG};
 use crate::constants::STRIP_MARKDOWN_RULES;
 
+#[cfg(feature = "graphql")]
 type ValidationResult<T = ()> = Result<T, ValidationErrors>;
 
 trait AsyncRedisCacheExt<K> {
@@ -73,12 +99,14 @@ where
     }
 }
 
+#[cfg(feature = "graphql")]
 trait OrValidationErrors<T> {
     fn or_validation_errors(self) -> ValidationResult<T>;
 
     fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T>;
 }
 
+#[cfg(feature = "graphql")]
 impl<T> OrValidationErrors<T> for Option<T> {
     fn or_validation_errors(self) -> ValidationResult<T> {
         self.ok_or_else(Default::default)
@@ -93,6 +121,7 @@ impl<T> OrValidationErrors<T> for Option<T> {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl<T, E> OrValidationErrors<T> for Result<T, E> {
     fn or_validation_errors(self) -> ValidationResult<T> {
         self.map_err(|_| Default::default())
@@ -124,18 +153,21 @@ pub(crate) fn markdown_to_text(input: &str) -> String {
     text.into_owned()
 }
 
+#[cfg(feature = "graphql")]
 fn encrypt_password(value: &str) -> String {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     argon2.hash_password(value.as_bytes(), &salt).unwrap().to_string()
 }
 
+#[cfg(feature = "graphql")]
 fn random_numeric_string(length: u8) -> String {
     let mut rng = rng();
 
     (0..length).map(|_| rng.random_range(0..=9).to_string()).collect()
 }
 
+#[cfg(feature = "graphql")]
 fn random_string<R: SampleRange<u8>>(length: R) -> String {
     let mut rng = rng();
 
@@ -160,6 +192,7 @@ where
         .expect("Could not get redis cache")
 }
 
+#[cfg(feature = "graphql")]
 fn text_icon(text: &str, size: u16) -> anyhow::Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
     let text_initials = &text[0..2].to_uppercase();
     let size = size as u32;
@@ -185,6 +218,7 @@ fn text_icon(text: &str, size: u16) -> anyhow::Result<ImageBuffer<Rgb<u8>, Vec<u
     Ok(rgb_image)
 }
 
+#[cfg(feature = "graphql")]
 fn text_to_rgb(text: &str) -> Rgb<u8> {
     let mut hasher = DefaultHasher::new();
     text.hash(&mut hasher);

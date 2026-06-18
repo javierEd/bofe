@@ -1,17 +1,30 @@
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::Validate;
 
 use crate::constants::*;
+use crate::db_pool;
 use crate::enums::{CountryCode, LanguageCode};
 use crate::models::User;
 use crate::pagination::{CursorPage, CursorParams};
+
+#[cfg(feature = "graphql")]
+use crate::jobs_storage;
+#[cfg(feature = "graphql")]
 use crate::params::{UpdateProfileParams, UserParams};
-use crate::{db_pool, jobs_storage};
 
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password, redis_cache_store, text_icon};
+use super::redis_cache_store;
 
+#[cfg(feature = "graphql")]
+use super::text_icon;
+
+#[cfg(feature = "graphql")]
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password};
+
+#[cfg(feature = "graphql")]
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
     let user = get_user_by_username_or_email(username_or_email).await?;
 
@@ -22,6 +35,7 @@ pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &st
     }
 }
 
+#[cfg(feature = "graphql")]
 pub fn get_user_avatar_image(user: &User<'_>, size: u16) -> anyhow::Result<Vec<u8>> {
     if !(32..=512).contains(&size) || size & (size - 1) != 0 {
         return Err(anyhow::anyhow!("Invalid avatar image size"));
@@ -192,6 +206,7 @@ async fn get_user_id_by_username(username: &str) -> sqlx::Result<Uuid> {
     .map(|record| record.id)
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn insert_user<'a>(params: UserParams) -> ValidationResult<User<'a>> {
     params.validate()?;
 
@@ -291,6 +306,7 @@ pub async fn paginate_users<'a>(cursor_params: CursorParams, query: &str) -> Cur
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn remove_user_cache(user: &User<'_>) {
     let username = user.username.to_lowercase();
     let email = user.email.to_lowercase();
@@ -305,6 +321,7 @@ pub(crate) async fn remove_user_cache(user: &User<'_>) {
     );
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParams) -> ValidationResult<User<'a>> {
     params.validate()?;
 
@@ -344,10 +361,12 @@ pub async fn update_user_profile<'a>(user: &User<'_>, params: UpdateProfileParam
     Ok(updated_user)
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn user_email_exists(email: &str) -> bool {
     get_user_id_by_email(email).await.is_ok()
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn user_username_exists(username: &str) -> bool {
     get_user_id_by_username(username).await.is_ok()
 }

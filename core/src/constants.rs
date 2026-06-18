@@ -1,9 +1,14 @@
-use std::borrow::Cow;
 use std::sync::LazyLock;
 
+#[cfg(feature = "graphql")]
+use std::borrow::Cow;
+
 use regex::Regex;
+
+#[cfg(feature = "graphql")]
 use validator::ValidationError;
 
+#[cfg(feature = "graphql")]
 pub const BLACKLISTED_USERNAMES: [&str; 26] = [
     "admin",
     "api",
@@ -34,6 +39,7 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
 ];
 
 pub const CACHE_PREFIX_GET_ACTIVITY_BY_ID: &str = "get_activity_by_id";
+#[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
@@ -49,25 +55,38 @@ pub const CACHE_PREFIX_GET_USER_BY_USERNAME_OR_EMAIL: &str = "get_user_by_userna
 pub const CACHE_PREFIX_GET_USER_ID_BY_EMAIL: &str = "get_user_id_by_email";
 pub const CACHE_PREFIX_GET_USER_ID_BY_USERNAME: &str = "get_user_id_by_username";
 
+#[cfg(feature = "graphql")]
 pub static ERROR_ALREADY_EXISTS: LazyLock<ValidationError> =
     LazyLock::new(|| ValidationError::new("already-exists").with_message(Cow::Borrowed("Already exists")));
+#[cfg(feature = "graphql")]
 pub static ERROR_CANT_BE_BLANK: LazyLock<ValidationError> =
     LazyLock::new(|| ValidationError::new("cant-be-blank").with_message(Cow::Borrowed("Can't be blank")));
+#[cfg(feature = "graphql")]
 pub static ERROR_IS_INVALID: LazyLock<ValidationError> =
     LazyLock::new(|| ValidationError::new("invalid").with_message(Cow::Borrowed("Is invalid")));
+#[cfg(feature = "graphql")]
 pub static ERROR_PASSWORD_MUST_CHANGE: LazyLock<ValidationError> = LazyLock::new(|| {
     ValidationError::new("password-must-change").with_message(Cow::Borrowed("Must be different from current password"))
 });
 
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CONFIRM_EMAIL: &str = "failed-to-confirm-email";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CONFIRM_PASSWORD_RESET: &str = "failed-to-confirm-password-reset";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CREATE_SESSION: &str = "failed-to-create-session";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CREATE_USER: &str = "failed-to-create-user";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_SEND_CONFIRMATION: &str = "failed-to-send-confirmation";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_UPDATE_EMAIL: &str = "failed-to-update-email";
 
+#[cfg(feature = "graphql")]
 pub static REGEX_COLOR_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A#[[:xdigit:]]{3,6}\z").unwrap());
+#[cfg(feature = "graphql")]
 pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnum:]]+(?:-[[:alnum:]]+)*\z").unwrap());
+#[cfg(feature = "graphql")]
 pub static REGEX_USERNAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[-_.]?([[:alnum:]]+[-_.]?)+\z").unwrap());
 
 pub static STRIP_MARKDOWN_RULES: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {

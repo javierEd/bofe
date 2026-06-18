@@ -18,13 +18,14 @@ mod constants;
 mod pagination;
 mod scalars;
 
-#[cfg(feature = "graphql")]
-pub mod graphql;
-
 pub mod commands;
 pub mod enums;
 pub mod jobs;
 pub mod models;
+
+#[cfg(feature = "graphql")]
+pub mod graphql;
+#[cfg(feature = "graphql")]
 pub mod params;
 
 use crate::config::{DATABASE_CONFIG, IM_DATABASE_CONFIG};
@@ -83,6 +84,7 @@ impl Default for Info {
     }
 }
 
+#[cfg(feature = "graphql")]
 fn block_on<T>(f: impl Future<Output = T>) -> T {
     tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on(f))
 }

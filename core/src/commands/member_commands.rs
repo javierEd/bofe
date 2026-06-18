@@ -1,18 +1,24 @@
 use cached::AsyncRedisCache;
 use cached::concurrent_cached;
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::ValidationErrors;
 
-use crate::constants::{CACHE_PREFIX_GET_MEMBER, CACHE_PREFIX_GET_MEMBER_BY_ID, ERROR_IS_INVALID};
+use crate::constants::{CACHE_PREFIX_GET_MEMBER, CACHE_PREFIX_GET_MEMBER_BY_ID};
 use crate::db_pool;
 use crate::models::{Board, Member, User};
-use crate::pagination::CursorPage;
-use crate::pagination::CursorParams;
-use crate::params::MemberParams;
-use crate::params::UpdateMemberParams;
+
+#[cfg(feature = "graphql")]
+use crate::constants::ERROR_IS_INVALID;
+#[cfg(feature = "graphql")]
+use crate::pagination::{CursorPage, CursorParams};
+#[cfg(feature = "graphql")]
+use crate::params::{MemberParams, UpdateMemberParams};
 
 use super::*;
 
+#[cfg(feature = "graphql")]
 pub async fn delete_member(user: &User<'_>, member: &Member) -> sqlx::Result<bool> {
     if !member.is_removable(user).await? {
         return Err(sqlx::Error::RowNotFound);
@@ -70,6 +76,8 @@ pub async fn get_member_by_id(id: Uuid) -> sqlx::Result<Member> {
         .fetch_one(db_pool)
         .await
 }
+
+#[cfg(feature = "graphql")]
 pub async fn insert_member(user: &User<'_>, params: MemberParams) -> ValidationResult<Member> {
     let board = get_visible_board_by_id(params.board_id, Some(user))
         .await
@@ -104,6 +112,7 @@ pub async fn insert_member(user: &User<'_>, params: MemberParams) -> ValidationR
     .or_validation_errors()
 }
 
+#[cfg(feature = "graphql")]
 pub async fn paginate_members(cursor_params: CursorParams, board: &Board<'_>) -> CursorPage<Member> {
     let db_pool = db_pool().await;
 
@@ -131,6 +140,7 @@ pub async fn paginate_members(cursor_params: CursorParams, board: &Board<'_>) ->
     .await
 }
 
+#[cfg(feature = "graphql")]
 async fn remove_member_cache(member: &Member) {
     GET_MEMBER
         .cache_remove(
@@ -140,6 +150,7 @@ async fn remove_member_cache(member: &Member) {
         .await;
 }
 
+#[cfg(feature = "graphql")]
 pub async fn update_member(user: &User<'_>, member: &Member, params: UpdateMemberParams) -> ValidationResult<Member> {
     if !member.is_editable(user).await.or_validation_errors()? {
         return Err(ValidationErrors::new());

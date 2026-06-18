@@ -16,6 +16,7 @@ pub trait CustomExt {
 
     #[allow(dead_code)]
     fn session_opt(&self) -> Option<&Session<'_>>;
+
     fn user(&self) -> &User<'_>;
 
     fn user_opt(&self) -> Option<&User<'_>>;

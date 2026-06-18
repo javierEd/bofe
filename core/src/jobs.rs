@@ -1,11 +1,15 @@
-use apalis::prelude::TaskSink;
 use apalis_redis::RedisStorage;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
+#[cfg(feature = "graphql")]
+use apalis::prelude::TaskSink;
+
 use crate::config::MONITOR_CONFIG;
 use crate::enums::ActivityAction;
+
+#[cfg(feature = "graphql")]
 use crate::models::{Board, Card, Confirmation, List, Session, User};
 
 pub struct JobsStorage {
@@ -35,6 +39,7 @@ impl JobsStorage {
         RedisStorage::new(conn)
     }
 
+    #[cfg(feature = "graphql")]
     pub(crate) async fn push_new_confirmation(&self, confirmation: &Confirmation<'_>, code: &str) {
         self.new_confirmation
             .clone()
@@ -46,6 +51,7 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
+    #[cfg(feature = "graphql")]
     pub(crate) async fn push_new_session(&self, session: &Session<'_>) {
         self.new_session
             .clone()
@@ -54,6 +60,7 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
+    #[cfg(feature = "graphql")]
     pub(crate) async fn push_new_user(&self, user: &User<'_>) {
         self.new_user
             .clone()
@@ -62,6 +69,7 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
+    #[cfg(feature = "graphql")]
     pub(crate) async fn push_password_changed(&self, user: &User<'_>, new_password: Option<String>) {
         self.password_changed
             .clone()
@@ -73,6 +81,7 @@ impl JobsStorage {
             .expect("Could not store job");
     }
 
+    #[cfg(feature = "graphql")]
     pub(crate) async fn push_activity<T, D>(
         &self,
         user: &User<'_>,
@@ -123,12 +132,14 @@ pub struct ActivityJob {
     pub data: Option<Value>,
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) trait ActivityJobExt<T, D = ()> {
     fn new(user: &User<'_>, board: &Board<'_>, action: ActivityAction, target: &T, data: &D) -> Self
     where
         D: Serialize;
 }
 
+#[cfg(feature = "graphql")]
 impl<D> ActivityJobExt<Board<'_>, D> for ActivityJob {
     fn new(user: &User, board: &Board, action: ActivityAction, target: &Board, data: &D) -> Self
     where
@@ -144,6 +155,7 @@ impl<D> ActivityJobExt<Board<'_>, D> for ActivityJob {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl<D> ActivityJobExt<Card<'_>, D> for ActivityJob {
     fn new(user: &User, board: &Board, action: ActivityAction, target: &Card, data: &D) -> Self
     where
@@ -159,6 +171,7 @@ impl<D> ActivityJobExt<Card<'_>, D> for ActivityJob {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl<D> ActivityJobExt<List<'_>, D> for ActivityJob {
     fn new(user: &User, board: &Board, action: ActivityAction, target: &List, data: &D) -> Self
     where

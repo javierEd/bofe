@@ -92,6 +92,7 @@ impl Display for Member {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl Member {
     pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
         commands::get_board_by_id(self.board_id).await

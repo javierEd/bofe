@@ -3,17 +3,28 @@ use std::fmt::Display;
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
 use validator::{Validate, ValidationErrors};
 
 use crate::constants::*;
 use crate::db_pool;
-use crate::enums::{ActivityAction, BoardVisibility};
-use crate::jobs_storage;
+use crate::enums::BoardVisibility;
 use crate::models::{Board, User};
+
+#[cfg(feature = "graphql")]
+use crate::enums::ActivityAction;
+#[cfg(feature = "graphql")]
+use crate::jobs_storage;
+#[cfg(feature = "graphql")]
 use crate::pagination::{CursorPage, CursorParams};
+#[cfg(feature = "graphql")]
 use crate::params::BoardParams;
 
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, notify_board_channel, redis_cache_store};
+use super::redis_cache_store;
+
+#[cfg(feature = "graphql")]
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, notify_board_channel};
 
 #[derive(Clone)]
 struct UuidAndString(Uuid, String);
@@ -24,6 +35,7 @@ impl Display for UuidAndString {
     }
 }
 
+#[cfg(feature = "graphql")]
 async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &str) -> bool {
     let db_pool = db_pool().await;
     let board_id = board.map(|b| b.id);
@@ -39,6 +51,7 @@ async fn board_name_exists(user: &User<'_>, board: Option<&Board<'_>>, name: &st
     .is_ok()
 }
 
+#[cfg(feature = "graphql")]
 async fn board_slug_exists(user: &User<'_>, board: Option<&Board<'_>>, slug: &str) -> bool {
     let db_pool = db_pool().await;
     let board_id = board.map(|b| b.id);
@@ -54,6 +67,7 @@ async fn board_slug_exists(user: &User<'_>, board: Option<&Board<'_>>, slug: &st
     .is_ok()
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Result<bool> {
     if !board.is_editable(user) {
         return Err(sqlx::Error::RowNotFound);
@@ -154,6 +168,7 @@ pub(crate) async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> s
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&User<'_>>) -> sqlx::Result<Board<'a>> {
     let board = get_board_by_id(id).await?;
 
@@ -164,6 +179,7 @@ pub(crate) async fn get_visible_board_by_id<'a>(id: Uuid, target_user: Option<&U
     }
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn get_visible_board_by_slug<'a>(
     slug: &str,
     target_user: Option<&User<'_>>,
@@ -177,6 +193,7 @@ pub(crate) async fn get_visible_board_by_slug<'a>(
     }
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn get_visible_board_by_user_and_slug<'a>(
     user: &User<'_>,
     slug: &str,
@@ -191,6 +208,7 @@ pub(crate) async fn get_visible_board_by_user_and_slug<'a>(
     }
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
     params.validate()?;
 
@@ -244,6 +262,7 @@ pub(crate) async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> Va
     Ok(board)
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn paginate_boards<'a>(
     cursor_params: CursorParams,
     member_user: Option<&User<'_>>,
@@ -301,6 +320,7 @@ pub(crate) async fn paginate_boards<'a>(
     .await
 }
 
+#[cfg(feature = "graphql")]
 async fn remove_board_cache(board: &Board<'_>) {
     let slug = board.slug.to_lowercase();
     let user_and_slug = UuidAndString(board.user_id, slug.clone());
@@ -312,6 +332,7 @@ async fn remove_board_cache(board: &Board<'_>) {
     );
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn update_board<'a>(
     user: &User<'_>,
     board: &Board<'a>,

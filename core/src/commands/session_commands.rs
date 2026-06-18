@@ -1,20 +1,32 @@
+#[cfg(feature = "graphql")]
 use std::net::IpAddr;
 
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
-use chrono::Utc;
 use uuid::Uuid;
+
+#[cfg(feature = "graphql")]
+use chrono::Utc;
+#[cfg(feature = "graphql")]
 use validator::Validate;
 
-use crate::config::SESSION_CONFIG;
 use crate::constants::{CACHE_PREFIX_GET_SESSION_BY_ID, CACHE_PREFIX_GET_SESSION_BY_TOKEN};
+use crate::db_pool;
 use crate::enums::CountryCode;
-use crate::models::{Application, Session};
+use crate::models::Session;
+
+#[cfg(feature = "graphql")]
+use crate::config::SESSION_CONFIG;
+#[cfg(feature = "graphql")]
+use crate::jobs_storage;
+#[cfg(feature = "graphql")]
+use crate::models::Application;
+#[cfg(feature = "graphql")]
 use crate::params::SessionParams;
-use crate::{db_pool, jobs_storage};
 
 use super::*;
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> {
     let db_pool = db_pool().await;
 
@@ -94,6 +106,7 @@ pub async fn get_session_by_token(token: &str) -> sqlx::Result<Session<'static>>
     .await
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn insert_session<'a>(
     application: &Application<'_>,
     ip_address: &IpAddr,
@@ -142,6 +155,7 @@ pub(crate) async fn insert_session<'a>(
     Ok(session)
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) async fn refresh_session<'a>(session: &Session<'_>) -> sqlx::Result<Session<'a>> {
     let db_pool = db_pool().await;
 
