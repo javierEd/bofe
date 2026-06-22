@@ -204,6 +204,10 @@ impl SessionObject<'_> {
         self.0.id.into()
     }
 
+    async fn user(&self) -> Result<UserObject<'_>> {
+        Ok(self.0.user().await.map(UserObject)?)
+    }
+
     async fn token(&self) -> &str {
         &self.0.token
     }
