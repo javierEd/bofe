@@ -90,7 +90,18 @@ pub async fn insert_activity(
     target_id: Uuid,
     data: &Value,
 ) -> sqlx::Result<()> {
-    let db_pool = db_pool().await;
+    let mut transaction = db_pool().await.begin().await?;
+
+    sqlx::query!(
+        "UPDATE activities SET discarded_at = current_timestamp
+        WHERE discarded_at IS NULL AND user_id = $1 AND board_id = $2 AND action = $3 AND target_id = $4",
+        user.id,     // $1
+        board.id,    // $2
+        action as _, // $3
+        target_id,   // $4
+    )
+    .execute(&mut *transaction)
+    .await?;
 
     sqlx::query!(
         "INSERT INTO activities (user_id, board_id, action, target_id, data) VALUES ($1, $2, $3, $4, $5)",
@@ -100,8 +111,10 @@ pub async fn insert_activity(
         target_id,   // $4
         data         // $5
     )
-    .execute(db_pool)
+    .execute(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     let _ = notify_board_channel(board).await;
     let _ = notify_board_activities_channel(board).await;
@@ -140,7 +153,8 @@ pub(crate) async fn paginate_activities(
                     a.created_at
                 FROM activities AS a INNER JOIN boards AS b ON b.id = a.board_id
                 WHERE
-                    ($1::timestamptz IS NULL OR b.created_at < $1)
+                    a.discarded_at IS NULL
+                    AND ($1::timestamptz IS NULL OR a.created_at < $1)
                     AND ($2::uuid IS NULL OR a.user_id = $2)
                     AND ($3::uuid IS NULL OR a.board_id = $3)
                     AND (
