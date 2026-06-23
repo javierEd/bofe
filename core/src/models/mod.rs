@@ -1,12 +1,14 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::commands;
-use crate::enums::{ConfirmationAction, CountryCode};
+use crate::config::STORAGE_CONFIG;
+use crate::enums::{BlobFileType, ConfirmationAction, CountryCode};
 
 mod activity;
 mod board;
@@ -36,6 +38,44 @@ pub struct Application<'a> {
 impl Display for Application<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.id)
+    }
+}
+
+#[cfg(feature = "graphql")]
+pub(crate) struct Attachment<'a> {
+    pub id: Uuid,
+    #[allow(dead_code)]
+    pub user_id: Uuid,
+    #[allow(dead_code)]
+    pub blob_id: Uuid,
+    #[allow(dead_code)]
+    pub file_name: Cow<'a, str>,
+    pub created_at: DateTime<Utc>,
+}
+
+pub(crate) struct Blob<'a> {
+    pub id: Uuid,
+    pub file_type: BlobFileType,
+    #[allow(dead_code)]
+    pub size_bytes: i64,
+    #[allow(dead_code)]
+    pub sha256_checksum: Cow<'a, str>,
+    #[allow(dead_code)]
+    pub created_at: DateTime<Utc>,
+}
+
+impl Blob<'_> {
+    pub fn directory(&self) -> PathBuf {
+        STORAGE_CONFIG.path.join(format!("blobs/{}", self.id))
+    }
+
+    pub fn path(&self) -> PathBuf {
+        self.directory().join(format!("default.{}", self.file_type.extension()))
+    }
+
+    #[allow(dead_code)]
+    pub fn read(&self) -> std::io::Result<Vec<u8>> {
+        std::fs::read(self.path())
     }
 }
 

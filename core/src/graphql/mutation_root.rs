@@ -1,5 +1,5 @@
 use async_graphql::dynamic::indexmap::IndexMap;
-use async_graphql::{Context, Error, ErrorExtensions, InputType, Name, Object, Result, Value};
+use async_graphql::{Context, Error, ErrorExtensions, InputType, Name, Object, Result, Upload, Value};
 use convert_case::{Case, Casing};
 use uuid::Uuid;
 use validator::ValidationErrors;
@@ -70,6 +70,22 @@ impl MutationRoot {
             .await
             .map(|_| true)
             .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_CONFIRM_PASSWORD_RESET), None))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn create_attachment(&self, ctx: &Context<'_>, file: Upload) -> Result<AttachmentObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+
+        let file = file.value(ctx)?;
+        let blob = commands::get_or_insert_blob(&file.content)
+            .await
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UPLOAD_FILE), None))?;
+
+        commands::get_or_insert_attachment(user, &blob, &file.filename)
+            .await
+            .map(AttachmentObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UPLOAD_FILE), None))
     }
 
     #[graphql(guard = "UserGuard")]

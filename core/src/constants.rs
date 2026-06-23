@@ -81,6 +81,8 @@ pub const KEY_TEXT_FAILED_TO_CREATE_USER: &str = "failed-to-create-user";
 pub const KEY_TEXT_FAILED_TO_SEND_CONFIRMATION: &str = "failed-to-send-confirmation";
 #[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_UPDATE_EMAIL: &str = "failed-to-update-email";
+#[cfg(feature = "graphql")]
+pub const KEY_TEXT_FAILED_TO_UPLOAD_FILE: &str = "failed-to-upload-file";
 
 #[cfg(feature = "graphql")]
 pub static REGEX_COLOR_CODE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A#[[:xdigit:]]{3,6}\z").unwrap());

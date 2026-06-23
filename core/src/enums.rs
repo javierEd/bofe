@@ -1,3 +1,6 @@
+use std::fs::File;
+
+use file_format::FileFormat;
 use fluent_templates::{LanguageIdentifier, langid};
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +21,50 @@ pub enum ActivityAction {
     UpdateCardList,
     UpdateCardPosition,
     DeleteCard,
+}
+
+#[allow(clippy::enum_variant_names)]
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "blob_file_type")]
+pub(crate) enum BlobFileType {
+    #[sqlx(rename = "image/gif")]
+    ImageGif,
+    #[sqlx(rename = "image/jpeg")]
+    ImageJpeg,
+    #[sqlx(rename = "image/png")]
+    ImagePng,
+    #[sqlx(rename = "image/webp")]
+    ImageWebp,
+}
+
+impl TryFrom<&File> for BlobFileType {
+    type Error = std::io::Error;
+
+    fn try_from(value: &File) -> Result<Self, Self::Error> {
+        let file_format = FileFormat::from_reader(value)?;
+
+        match file_format {
+            FileFormat::GraphicsInterchangeFormat => Ok(Self::ImageGif),
+            FileFormat::JointPhotographicExpertsGroup => Ok(Self::ImageJpeg),
+            FileFormat::PortableNetworkGraphics => Ok(Self::ImagePng),
+            FileFormat::Webp => Ok(Self::ImageWebp),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Unsupported file format",
+            )),
+        }
+    }
+}
+
+impl BlobFileType {
+    pub fn extension(&self) -> &str {
+        match self {
+            Self::ImageGif => "gif",
+            Self::ImageJpeg => "jpeg",
+            Self::ImagePng => "png",
+            Self::ImageWebp => "webp",
+        }
+    }
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]

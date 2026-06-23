@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::graphql::context::CustomExt;
-use crate::models::{Confirmation, List, Member, Session};
+use crate::models::{Attachment, Confirmation, List, Member, Session};
 use crate::pagination::CursorParams;
 use crate::{Info, commands};
 
@@ -19,6 +19,19 @@ pub use board_object::BoardObject;
 pub use card_object::CardObject;
 pub use label_object::LabelObject;
 pub use user_object::UserObject;
+
+pub struct AttachmentObject<'a>(pub Attachment<'a>);
+
+#[Object]
+impl AttachmentObject<'_> {
+    async fn id(&self) -> ID {
+        self.0.id.into()
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.0.created_at
+    }
+}
 
 pub struct ConfirmationObject<'a>(pub Confirmation<'a>);
 
