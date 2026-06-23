@@ -1,7 +1,8 @@
-use bofe_core::enums::ConfirmationAction;
 use lettre::message::header::ContentType;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 use lettre::{Message, transport::smtp::authentication::Credentials};
+
+use bofe_core::enums::ConfirmationAction;
 
 use crate::config::MAILER_CONFIG;
 use crate::constants::*;

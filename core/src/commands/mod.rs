@@ -6,7 +6,6 @@ use std::future::Future;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use bytesize::ByteSize;
 use cached::async_sync::OnceCell;
 use cached::{AsyncRedisCache, ConcurrentCachedAsync};
 use serde::Serialize;
@@ -20,6 +19,8 @@ use argon2::PasswordHasher;
 use argon2::password_hash::SaltString;
 #[cfg(feature = "graphql")]
 use argon2::password_hash::rand_core::OsRng;
+#[cfg(feature = "graphql")]
+use bytesize::ByteSize;
 #[cfg(feature = "graphql")]
 use image::{ImageBuffer, Pixel, Rgb, RgbImage};
 #[cfg(feature = "graphql")]
@@ -49,6 +50,10 @@ mod user_commands;
 #[cfg(feature = "graphql")]
 mod application_commands;
 #[cfg(feature = "graphql")]
+mod attachment_commands;
+#[cfg(feature = "graphql")]
+mod blob_commands;
+#[cfg(feature = "graphql")]
 mod card_commands;
 #[cfg(feature = "graphql")]
 mod user_email_commands;
@@ -69,14 +74,21 @@ pub use user_commands::*;
 #[cfg(feature = "graphql")]
 pub use application_commands::*;
 #[cfg(feature = "graphql")]
+pub(crate) use attachment_commands::*;
+#[cfg(feature = "graphql")]
+pub(crate) use blob_commands::*;
+#[cfg(feature = "graphql")]
 pub(crate) use card_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use user_email_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use user_password_commands::*;
 
-use crate::config::{CACHE_CONFIG, STORAGE_CONFIG};
+use crate::config::CACHE_CONFIG;
 use crate::constants::STRIP_MARKDOWN_RULES;
+
+#[cfg(feature = "graphql")]
+use crate::config::STORAGE_CONFIG;
 
 #[cfg(feature = "graphql")]
 type ValidationResult<T = ()> = Result<T, ValidationErrors>;
@@ -136,7 +148,7 @@ impl<T, E> OrValidationErrors<T> for Result<T, E> {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(feature = "graphql")]
 fn get_available_space() -> ByteSize {
     let stats = uucore::fsext::statfs(STORAGE_CONFIG.path.as_os_str()).expect("Could not get storage stats");
 
