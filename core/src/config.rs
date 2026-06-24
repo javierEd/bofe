@@ -1,9 +1,10 @@
-use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
 
 #[cfg(feature = "graphql")]
 use std::ops::RangeInclusive;
+#[cfg(feature = "graphql")]
+use std::path::PathBuf;
 
 use envconfig::Envconfig;
 
@@ -24,6 +25,7 @@ pub(crate) static IM_DATABASE_CONFIG: LazyLock<IMDatabaseConfig> =
 pub(crate) static MONITOR_CONFIG: LazyLock<MonitorConfig> = LazyLock::new(|| MonitorConfig::init_from_env().unwrap());
 #[cfg(feature = "graphql")]
 pub(crate) static SESSION_CONFIG: LazyLock<SessionConfig> = LazyLock::new(|| SessionConfig::init_from_env().unwrap());
+#[cfg(feature = "graphql")]
 pub(crate) static STORAGE_CONFIG: LazyLock<StorageConfig> = LazyLock::new(|| StorageConfig::init_from_env().unwrap());
 
 #[cfg(feature = "graphql")]
@@ -111,6 +113,7 @@ impl SessionConfig {
     }
 }
 
+#[cfg(feature = "graphql")]
 #[derive(Envconfig)]
 pub(crate) struct StorageConfig {
     #[cfg(feature = "graphql")]

@@ -13,7 +13,7 @@ use bofe_core::graphql::{GraphqlSchema, GraphqlSchemaExt};
 use bofe_core::start_tracing_subscriber;
 
 use crate::config::API_CONFIG;
-use crate::handlers::{get_graphql_ws, get_index, get_user_avatar_image, post_graphql};
+use crate::handlers::*;
 
 mod config;
 mod constants;
@@ -45,6 +45,8 @@ async fn main() {
         .route("/graphql", post(post_graphql))
         .route("/ws", get(get_graphql_ws))
         .route("/storage/users/{id}/avatar-image", get(get_user_avatar_image))
+        .route("/storage/attachments/{key_id}", get(get_attachment))
+        .route("/storage/attachments/{key_id}/thumbnail", get(get_attachment_thumbnail))
         .with_state(graphql_schema)
         .layer(TraceLayer::new_for_http())
         .layer(cors_layer)

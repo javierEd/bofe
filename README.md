@@ -46,7 +46,7 @@ With **Bofe** you can easily build kanban style boards for your projects, person
 - Create and manage **Boards**.
 - Add, rename and reorder **Lists**.
 - Write **Cards** and move then between lists.
-- Create **Labels** and assign them to cards.
+- Create **Labels** and assign them to your cards.
 
 ## Build Requirements
 
