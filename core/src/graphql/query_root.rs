@@ -18,6 +18,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         after: Option<Uuid>,
         first: Option<i32>,
+        #[graphql(default = true)] include_global: bool,
     ) -> Result<Connection<Uuid, ActivityObject, EmptyFields, EmptyFields>> {
         let target_user = ctx.user_opt();
 
@@ -28,8 +29,14 @@ impl QueryRoot {
             None,
             |after, _before, first, _last| async move {
                 let first = first.map(|v| v as u8).unwrap_or(10);
-                let cursor_page =
-                    commands::paginate_activities(CursorParams::new(after, first), None, None, target_user).await;
+                let cursor_page = commands::paginate_activities(
+                    CursorParams::new(after, first),
+                    None,
+                    None,
+                    target_user,
+                    include_global,
+                )
+                .await;
                 let mut connection = Connection::new(false, cursor_page.has_next_page);
 
                 connection.edges.extend(

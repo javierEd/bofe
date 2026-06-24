@@ -128,11 +128,13 @@ pub(crate) async fn paginate_activities(
     user: Option<&User<'_>>,
     board: Option<&Board<'_>>,
     target_user: Option<&User<'_>>,
+    include_global: bool,
 ) -> CursorPage<Activity> {
     let db_pool = db_pool().await;
     let user_id = user.map(|u| u.id);
     let board_id = board.map(|b| b.id);
     let target_user_id = target_user.map(|u| u.id);
+    let include_global = target_user_id.is_none() || include_global;
 
     CursorPage::new(
         &cursor_params,
@@ -158,21 +160,23 @@ pub(crate) async fn paginate_activities(
                     AND ($2::uuid IS NULL OR a.user_id = $2)
                     AND ($3::uuid IS NULL OR a.board_id = $3)
                     AND (
-                        CASE b.visibility
-                        WHEN 'public' THEN TRUE
-                        WHEN 'users' THEN $4::uuid IS NOT NULL
+                        CASE
+                        WHEN b.visibility = 'public' AND $5 IS TRUE THEN TRUE
+                        WHEN b.visibility = 'users' AND $5 IS TRUE THEN $4::uuid IS NOT NULL
                         ELSE
-                            ($2 IS NOT NULL AND $2 = $4)
-                            OR b.user_id = $4
-                            OR (SELECT id FROM members WHERE board_id = b.id AND user_id = $4 LIMIT 1) IS NOT NULL
+                            $4 IS NOT NULL AND (
+                                a.user_id = $4 OR b.user_id = $4
+                                OR (SELECT id FROM members WHERE board_id = b.id AND user_id = $4 LIMIT 1) IS NOT NULL
+                            )
                         END
                     )
-                ORDER BY a.created_at DESC LIMIT $5"#,
+                ORDER BY a.created_at DESC LIMIT $6"#,
                 cursor_created_at, // $1
                 user_id,           // $2
                 board_id,          // $3
                 target_user_id,    // $4
-                limit,             // $5
+                include_global,    // $5
+                limit,             // $6
             )
             .fetch_all(db_pool)
             .await
