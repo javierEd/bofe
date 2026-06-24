@@ -20,6 +20,17 @@ use uuid::Uuid;
 use crate::constants::*;
 
 #[derive(Deserialize)]
+pub struct AttachmentQuery {
+    download: Option<bool>,
+}
+
+#[derive(Deserialize)]
+pub struct ThumbnailQuery {
+    width: Option<u16>,
+    height: Option<u16>,
+}
+
+#[derive(Deserialize)]
 pub struct AvatarImageQuery {
     pub size: Option<u16>,
 }
@@ -105,6 +116,79 @@ impl<T, E> OrHttpError<T> for Result<T, E> {
             Err(_) => Err(RESPONSE_ERROR_UNAUTHORIZED.clone().into()),
         }
     }
+}
+
+pub async fn get_attachment(
+    Path(key_id): Path<Uuid>,
+    Query(params): Query<AttachmentQuery>,
+) -> Result<impl IntoResponse> {
+    let attachment_key = commands::get_attachment_key_by_id(key_id).await.or_not_found()?;
+    let attachment = attachment_key.attachment().await.or_not_found()?;
+    let blob = attachment.blob().await.or_not_found()?;
+    let content = blob.read().or_internal_server_error()?;
+    let content_len = content.len();
+    let body = Body::from(content);
+
+    let headers = [
+        (CONTENT_TYPE, blob.file_type.to_string()),
+        (CONTENT_LENGTH, content_len.to_string()),
+        (
+            CONTENT_DISPOSITION,
+            format!(
+                "{}; filename=\"{}\"",
+                if params.download == Some(true) {
+                    "attachment"
+                } else {
+                    "inline"
+                },
+                attachment.file_name
+            ),
+        ),
+    ];
+
+    Ok((headers, body))
+}
+
+pub async fn get_attachment_thumbnail(
+    Path(key_id): Path<Uuid>,
+    Query(params): Query<ThumbnailQuery>,
+) -> Result<impl IntoResponse> {
+    let attachment_key = commands::get_attachment_key_by_id(key_id).await.or_not_found()?;
+    let attachment = attachment_key.attachment().await.or_not_found()?;
+    let blob = attachment.blob().await.or_not_found()?;
+
+    if !blob.file_type.support_thumbnails() {
+        return Err(RESPONSE_ERROR_BAD_REQUEST.clone().into());
+    }
+
+    let (width, height) = if let Some(width) = params.width
+        && let Some(height) = params.height
+    {
+        (width, height)
+    } else {
+        (256, 256)
+    };
+
+    let content = blob.read_thumbnail(width, height).or_internal_server_error()?;
+    let content_len = content.len();
+    let body = Body::from(content);
+
+    let headers = [
+        (CONTENT_TYPE, blob.thumbnail_file_type().to_string()),
+        (CONTENT_LENGTH, content_len.to_string()),
+        (
+            CONTENT_DISPOSITION,
+            format!(
+                "inline; filename=\"{}_{}x{}.{}\"",
+                attachment.file_name_without_extension(),
+                width,
+                height,
+                blob.thumbnail_file_type().extension()
+            ),
+        ),
+    ];
+
+    Ok((headers, body))
 }
 
 pub async fn get_graphql_ws(

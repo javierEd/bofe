@@ -1,14 +1,24 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+
+#[cfg(feature = "graphql")]
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg(feature = "graphql")]
+use url::Url;
+
 use crate::commands;
+use crate::enums::{ConfirmationAction, CountryCode};
+
+#[cfg(feature = "graphql")]
+use crate::enums::BlobFileType;
+
+#[cfg(feature = "graphql")]
 use crate::config::STORAGE_CONFIG;
-use crate::enums::{BlobFileType, ConfirmationAction, CountryCode};
 
 mod activity;
 mod board;
@@ -42,28 +52,72 @@ impl Display for Application<'_> {
 }
 
 #[cfg(feature = "graphql")]
-pub(crate) struct Attachment<'a> {
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Attachment<'a> {
     pub id: Uuid,
-    #[allow(dead_code)]
     pub user_id: Uuid,
-    #[allow(dead_code)]
     pub blob_id: Uuid,
-    #[allow(dead_code)]
     pub file_name: Cow<'a, str>,
     pub created_at: DateTime<Utc>,
 }
 
-pub(crate) struct Blob<'a> {
+#[cfg(feature = "graphql")]
+impl Attachment<'_> {
+    pub async fn blob(&self) -> sqlx::Result<Blob<'_>> {
+        commands::get_blob_by_id(self.blob_id).await
+    }
+
+    pub fn file_name_without_extension(&self) -> &str {
+        self.file_name.split('.').collect::<Vec<&str>>()[0]
+    }
+
+    pub async fn file_type(&self) -> sqlx::Result<BlobFileType> {
+        Ok(self.blob().await?.file_type)
+    }
+
+    pub async fn read(&self) -> std::io::Result<Vec<u8>> {
+        self.blob()
+            .await
+            .map_err(|e| std::io::Error::other(e.to_string()))?
+            .read()
+    }
+
+    pub async fn url(&self, user: Option<&User<'_>>) -> anyhow::Result<Url> {
+        let attachment_key = commands::insert_attachment_key(user, self).await?;
+        let file_url = STORAGE_CONFIG.url.join(&format!("attachments/{}", attachment_key.id))?;
+
+        Ok(file_url)
+    }
+}
+
+#[cfg(feature = "graphql")]
+#[derive(Clone, Deserialize, Serialize)]
+pub struct AttachmentKey {
     pub id: Uuid,
-    pub file_type: BlobFileType,
-    #[allow(dead_code)]
-    pub size_bytes: i64,
-    #[allow(dead_code)]
-    pub sha256_checksum: Cow<'a, str>,
-    #[allow(dead_code)]
+    pub user_id: Option<Uuid>,
+    pub attachment_id: Uuid,
+    pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 }
 
+#[cfg(feature = "graphql")]
+impl AttachmentKey {
+    pub async fn attachment(&self) -> sqlx::Result<Attachment<'_>> {
+        commands::get_attachment_by_id(self.attachment_id).await
+    }
+}
+
+#[cfg(feature = "graphql")]
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Blob<'a> {
+    pub id: Uuid,
+    pub file_type: BlobFileType,
+    pub size_bytes: i64,
+    pub sha256_checksum: Cow<'a, str>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[cfg(feature = "graphql")]
 impl Blob<'_> {
     pub fn directory(&self) -> PathBuf {
         STORAGE_CONFIG.path.join(format!("blobs/{}", self.id))
@@ -73,9 +127,25 @@ impl Blob<'_> {
         self.directory().join(format!("default.{}", self.file_type.extension()))
     }
 
-    #[allow(dead_code)]
+    pub fn thumbnail_file_type(&self) -> BlobFileType {
+        match self.file_type {
+            BlobFileType::ImagePng => BlobFileType::ImagePng,
+            BlobFileType::ImageWebp => BlobFileType::ImageWebp,
+            _ => BlobFileType::ImageJpeg,
+        }
+    }
+
+    pub fn thumbnail_path(&self, width: u16, height: u16) -> PathBuf {
+        self.directory()
+            .join(format!("thumbnail-{width}x{height}.{}", self.file_type.extension()))
+    }
+
     pub fn read(&self) -> std::io::Result<Vec<u8>> {
         std::fs::read(self.path())
+    }
+
+    pub fn read_thumbnail(&self, width: u16, height: u16) -> anyhow::Result<Vec<u8>> {
+        commands::get_or_create_blob_thumbnail(self, width, height)
     }
 }
 

@@ -1,6 +1,7 @@
 use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
+use url::Url;
 use uuid::Uuid;
 
 use crate::graphql::context::CustomExt;
@@ -26,6 +27,12 @@ pub struct AttachmentObject<'a>(pub Attachment<'a>);
 impl AttachmentObject<'_> {
     async fn id(&self) -> ID {
         self.0.id.into()
+    }
+
+    async fn url(&self, ctx: &Context<'_>) -> Result<Url> {
+        let user = ctx.user_opt();
+
+        Ok(self.0.url(user).await?)
     }
 
     async fn created_at(&self) -> DateTime<Utc> {

@@ -52,6 +52,8 @@ mod application_commands;
 #[cfg(feature = "graphql")]
 mod attachment_commands;
 #[cfg(feature = "graphql")]
+mod attachment_key_commands;
+#[cfg(feature = "graphql")]
 mod blob_commands;
 #[cfg(feature = "graphql")]
 mod card_commands;
@@ -75,6 +77,8 @@ pub use user_commands::*;
 pub use application_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use attachment_commands::*;
+#[cfg(feature = "graphql")]
+pub use attachment_key_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use blob_commands::*;
 #[cfg(feature = "graphql")]

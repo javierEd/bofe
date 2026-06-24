@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs::File;
 
 use file_format::FileFormat;
@@ -24,9 +25,9 @@ pub enum ActivityAction {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(sqlx::Type)]
+#[derive(sqlx::Type, Clone, Deserialize, PartialEq, Serialize)]
 #[sqlx(type_name = "blob_file_type")]
-pub(crate) enum BlobFileType {
+pub enum BlobFileType {
     #[sqlx(rename = "image/gif")]
     ImageGif,
     #[sqlx(rename = "image/jpeg")]
@@ -35,6 +36,17 @@ pub(crate) enum BlobFileType {
     ImagePng,
     #[sqlx(rename = "image/webp")]
     ImageWebp,
+}
+
+impl Display for BlobFileType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BlobFileType::ImageGif => write!(f, "image/gif"),
+            BlobFileType::ImageJpeg => write!(f, "image/jpeg"),
+            BlobFileType::ImagePng => write!(f, "image/png"),
+            BlobFileType::ImageWebp => write!(f, "image/webp"),
+        }
+    }
 }
 
 impl TryFrom<&File> for BlobFileType {
@@ -64,6 +76,10 @@ impl BlobFileType {
             Self::ImagePng => "png",
             Self::ImageWebp => "webp",
         }
+    }
+
+    pub fn support_thumbnails(&self) -> bool {
+        [Self::ImageGif, Self::ImageJpeg, Self::ImagePng, Self::ImageWebp].contains(self)
     }
 }
 
