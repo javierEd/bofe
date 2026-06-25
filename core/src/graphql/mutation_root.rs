@@ -211,6 +211,20 @@ impl MutationRoot {
     }
 
     #[graphql(guard = "UserGuard")]
+    async fn delete_user(&self, ctx: &Context<'_>, password: String) -> Result<bool> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+
+        if !user.verify_password(&password) {
+            return Err(to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_DELETE_USER), None));
+        }
+
+        commands::delete_user(user)
+            .await
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_DELETE_USER), None))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn finish_session(&self, ctx: &Context<'_>) -> Result<bool> {
         let session = ctx.session();
 

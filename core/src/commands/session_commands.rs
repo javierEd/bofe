@@ -20,11 +20,42 @@ use crate::config::SESSION_CONFIG;
 #[cfg(feature = "graphql")]
 use crate::jobs_storage;
 #[cfg(feature = "graphql")]
-use crate::models::Application;
+use crate::models::{Application, User};
 #[cfg(feature = "graphql")]
 use crate::params::SessionParams;
 
 use super::*;
+
+#[cfg(feature = "graphql")]
+pub(crate) async fn finish_all_sessions(user: &User<'_>) -> sqlx::Result<()> {
+    let db_pool = db_pool().await;
+
+    let sessions = sqlx::query_as!(
+        Session,
+        r#"SELECT
+            id,
+            application_id,
+            user_id,
+            token,
+            ip_address,
+            country_code AS "country_code: CountryCode",
+            region,
+            city,
+            expires_at,
+            refreshed_at,
+            finished_at,
+            created_at,
+            updated_at
+        FROM sessions WHERE expires_at > current_timestamp AND finished_at IS NULL AND user_id = $1"#,
+        user.id
+    )
+    .fetch_all(db_pool)
+    .await?;
+
+    futures::future::join_all(sessions.iter().map(|session| finish_session(session))).await;
+
+    Ok(())
+}
 
 #[cfg(feature = "graphql")]
 pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> {

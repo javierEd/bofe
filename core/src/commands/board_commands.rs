@@ -209,6 +209,19 @@ pub(crate) async fn get_visible_board_by_user_and_slug<'a>(
 }
 
 #[cfg(feature = "graphql")]
+pub(crate) async fn has_boards(user: &User<'_>) -> bool {
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "SELECT id FROM boards WHERE user_id = $1 LIMIT 1",
+        user.id, // $1
+    )
+    .fetch_one(db_pool)
+    .await
+    .is_ok()
+}
+
+#[cfg(feature = "graphql")]
 pub(crate) async fn insert_board<'a>(user: &User<'_>, params: BoardParams) -> ValidationResult<Board<'a>> {
     params.validate()?;
 
