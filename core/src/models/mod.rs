@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::fmt::Display;
 
 #[cfg(feature = "graphql")]
 use std::path::PathBuf;
@@ -43,12 +42,6 @@ pub struct Application<'a> {
     pub disabled_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
-}
-
-impl Display for Application<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
 }
 
 #[cfg(feature = "graphql")]
@@ -149,6 +142,7 @@ impl Blob<'_> {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct CardLabel {
     #[allow(dead_code)]
     pub id: Uuid,
@@ -196,12 +190,6 @@ pub(crate) struct Member {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl Display for Member {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
-}
-
 #[cfg(feature = "graphql")]
 impl Member {
     pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
@@ -242,12 +230,6 @@ pub struct Session<'a> {
     pub finished_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
-}
-
-impl Display for Session<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
 }
 
 impl Session<'_> {

@@ -13,7 +13,7 @@ use super::redis_cache_store;
     ty = "AsyncRedisCache<Uuid, Attachment<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_ATTACHMENT_BY_ID).await }"##
 )]
-pub async fn get_attachment_by_id(id: Uuid) -> sqlx::Result<Attachment<'static>> {
+pub async fn get_attachment_by_id<'a>(id: Uuid) -> sqlx::Result<Attachment<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

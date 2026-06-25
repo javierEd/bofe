@@ -88,10 +88,10 @@ pub(crate) async fn delete_board(user: &User<'_>, board: &Board<'_>) -> sqlx::Re
 
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
-    ty = "AsyncRedisCache<Uuid, Board<'_>>",
+    ty = "AsyncRedisCache<Uuid, Board>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_ID).await }"##
 )]
-pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
+pub async fn get_board_by_id<'a>(id: Uuid) -> sqlx::Result<Board<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -116,10 +116,10 @@ pub async fn get_board_by_id(id: Uuid) -> sqlx::Result<Board<'static>> {
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ slug.to_lowercase() }"#,
-    ty = "AsyncRedisCache<String, Board<'_>>",
+    ty = "AsyncRedisCache<String, Board>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_SLUG).await }"##
 )]
-async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
+async fn get_board_by_slug<'a>(slug: &str) -> sqlx::Result<Board<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -143,10 +143,10 @@ async fn get_board_by_slug(slug: &str) -> sqlx::Result<Board<'static>> {
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ UuidAndString(user.id, slug.to_lowercase()) }"#,
-    ty = "AsyncRedisCache<UuidAndString, Board<'_>>",
+    ty = "AsyncRedisCache<UuidAndString, Board>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG).await }"##
 )]
-pub(crate) async fn get_board_by_user_and_slug(user: &User<'_>, slug: &str) -> sqlx::Result<Board<'static>> {
+pub(crate) async fn get_board_by_user_and_slug<'a>(user: &User<'_>, slug: &str) -> sqlx::Result<Board<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

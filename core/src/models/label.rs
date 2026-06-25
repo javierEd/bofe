@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -19,12 +18,6 @@ pub struct Label<'a> {
     pub color_code: ColorCode,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
-}
-
-impl Display for Label<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
 }
 
 impl Label<'_> {

@@ -64,7 +64,7 @@ pub fn get_or_create_blob_thumbnail(blob: &Blob, width: u16, height: u16) -> any
     ty = "AsyncRedisCache<Uuid, Blob<'_>>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_BLOB_BY_ID).await }"##
 )]
-pub async fn get_blob_by_id(id: Uuid) -> sqlx::Result<Blob<'static>> {
+pub async fn get_blob_by_id<'a>(id: Uuid) -> sqlx::Result<Blob<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

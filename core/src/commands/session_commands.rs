@@ -48,7 +48,7 @@ pub(crate) async fn finish_session(session: &Session<'_>) -> sqlx::Result<bool> 
     ty = "AsyncRedisCache<Uuid, Session>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_SESSION_BY_ID).await }"##
 )]
-pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
+pub async fn get_session_by_id<'a>(id: Uuid) -> sqlx::Result<Session<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -80,7 +80,7 @@ pub async fn get_session_by_id(id: Uuid) -> sqlx::Result<Session<'static>> {
     ty = "AsyncRedisCache<String, Session>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_SESSION_BY_TOKEN).await }"##
 )]
-pub async fn get_session_by_token(token: &str) -> sqlx::Result<Session<'static>> {
+pub async fn get_session_by_token<'a>(token: &str) -> sqlx::Result<Session<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
