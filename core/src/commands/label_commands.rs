@@ -10,7 +10,7 @@ use crate::db_pool;
 use crate::models::Label;
 
 #[cfg(feature = "graphql")]
-use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
+use crate::constants::{CACHE_PREFIX_GET_ALL_LABELS, ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 #[cfg(feature = "graphql")]
 use crate::models::{Board, User};
 #[cfg(feature = "graphql")]
@@ -43,6 +43,12 @@ pub(crate) async fn delete_label(user: &User<'_>, label: &Label<'_>) -> sqlx::Re
 }
 
 #[cfg(feature = "graphql")]
+#[concurrent_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ board.id }"#,
+    ty = "AsyncRedisCache<Uuid, Vec<Label<'_>>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_ALL_LABELS).await }"##
+)]
 pub async fn get_all_labels<'a>(board: &Board<'a>) -> sqlx::Result<Vec<Label<'a>>> {
     let db_pool = db_pool().await;
 
@@ -186,9 +192,10 @@ pub async fn paginate_labels<'a>(cursor_params: CursorParams, board: &Board<'a>)
 
 #[cfg(feature = "graphql")]
 async fn remove_label_cache(label: &Label<'_>) {
-    GET_LABEL_BY_ID
-        .cache_remove(CACHE_PREFIX_GET_LABEL_BY_ID, &label.id)
-        .await;
+    tokio::join!(
+        GET_ALL_LABELS.cache_remove(CACHE_PREFIX_GET_ALL_LABELS, &label.board_id),
+        GET_LABEL_BY_ID.cache_remove(CACHE_PREFIX_GET_LABEL_BY_ID, &label.id)
+    );
 }
 
 #[cfg(feature = "graphql")]

@@ -1,12 +1,26 @@
-#[cfg(feature = "graphql")]
+use cached::AsyncRedisCache;
+use cached::macros::concurrent_cached;
+
 use uuid::Uuid;
 
+use crate::constants::CACHE_PREFIX_GET_ALL_CARD_LABELS;
 use crate::db_pool;
 use crate::models::{Card, CardLabel};
 
 #[cfg(feature = "graphql")]
 use crate::models::Label;
 
+#[cfg(feature = "graphql")]
+use super::AsyncRedisCacheExt;
+
+use super::redis_cache_store;
+
+#[concurrent_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ card.id }"#,
+    ty = "AsyncRedisCache<Uuid, Vec<CardLabel>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_ALL_CARD_LABELS).await }"##
+)]
 pub async fn get_all_card_labels(card: &Card<'_>) -> sqlx::Result<Vec<CardLabel>> {
     let db_pool = db_pool().await;
 
@@ -53,6 +67,13 @@ pub async fn insert_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::
 }
 
 #[cfg(feature = "graphql")]
+async fn remove_all_card_labels_cache(card: &Card<'_>) {
+    GET_ALL_CARD_LABELS
+        .cache_remove(CACHE_PREFIX_GET_ALL_CARD_LABELS, &card.id)
+        .await;
+}
+
+#[cfg(feature = "graphql")]
 pub async fn update_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::Result<()> {
     insert_card_labels(card, labels).await?;
 
@@ -67,6 +88,8 @@ pub async fn update_card_labels(card: &Card<'_>, labels: &[Label<'_>]) -> sqlx::
     )
     .execute(db_pool)
     .await?;
+
+    remove_all_card_labels_cache(card).await;
 
     Ok(())
 }

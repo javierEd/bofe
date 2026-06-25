@@ -143,7 +143,7 @@ impl<T, E> OrValidationErrors<T> for Result<T, E> {
         self.map_err(|_| Default::default())
     }
 
-    fn or_validation_errors_with<'a>(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
+    fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
         let mut validation_errors = ValidationErrors::new();
 
         validation_errors.add(field, error);
@@ -197,7 +197,7 @@ fn random_string<R: SampleRange<u8>>(length: R) -> String {
 
 async fn redis_cache_store<K, V>(prefix: &str) -> AsyncRedisCache<K, V>
 where
-    K: Clone + Display + Send + Sync,
+    K: Display + Send + Sync,
     V: DeserializeOwned + Send + Serialize,
 {
     AsyncRedisCache::new(format!("{prefix}:"), CACHE_CONFIG.ttl())

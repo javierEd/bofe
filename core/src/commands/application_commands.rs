@@ -22,10 +22,10 @@ pub async fn get_all_applications<'a>() -> sqlx::Result<Vec<Application<'a>>> {
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ token.to_string() }"#,
-    ty = "AsyncRedisCache<String, Application<'_>>",
+    ty = "AsyncRedisCache<String, Application>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_APPLICATION_BY_TOKEN).await }"##
 )]
-pub async fn get_application_by_token(token: &str) -> sqlx::Result<Application<'static>> {
+pub async fn get_application_by_token<'a>(token: &str) -> sqlx::Result<Application<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

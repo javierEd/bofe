@@ -40,6 +40,13 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
 
 pub const CACHE_PREFIX_GET_ACTIVITY_BY_ID: &str = "get_activity_by_id";
 #[cfg(feature = "graphql")]
+pub const CACHE_PREFIX_GET_ALL_CARDS: &str = "get_all_cards";
+pub const CACHE_PREFIX_GET_ALL_CARD_LABELS: &str = "get_all_card_labels";
+#[cfg(feature = "graphql")]
+pub const CACHE_PREFIX_GET_ALL_LABELS: &str = "get_all_labels";
+#[cfg(feature = "graphql")]
+pub const CACHE_PREFIX_GET_ALL_LISTS: &str = "get_all_lists";
+#[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_APPLICATION_BY_TOKEN: &str = "get_application_by_token";
 #[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_ATTACHMENT_BY_ID: &str = "get_attachment_by_id";

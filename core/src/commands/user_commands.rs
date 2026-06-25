@@ -61,7 +61,7 @@ pub fn get_user_avatar_image(user: &User<'_>, size: u16) -> anyhow::Result<Vec<u
     ty = "AsyncRedisCache<Uuid, User>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_ID).await }"##
 )]
-pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User<'static>> {
+pub async fn get_user_by_id<'a>(id: Uuid) -> sqlx::Result<User<'a>> {
     let db_pool = db_pool().await;
 
     sqlx::query_as!(
@@ -91,10 +91,10 @@ pub async fn get_user_by_id(id: Uuid) -> sqlx::Result<User<'static>> {
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username.to_lowercase() }"#,
-    ty = "AsyncRedisCache<String, User<'_>>",
+    ty = "AsyncRedisCache<String, User>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_USERNAME).await }"##
 )]
-pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'static>> {
+pub(crate) async fn get_user_by_username<'a>(username: &str) -> sqlx::Result<User<'a>> {
     if username.is_empty() {
         return Err(sqlx::Error::RowNotFound);
     }
@@ -127,10 +127,10 @@ pub(crate) async fn get_user_by_username(username: &str) -> sqlx::Result<User<'s
 #[concurrent_cached(
     map_error = r##"|_| sqlx::Error::RowNotFound"##,
     convert = r#"{ username_or_email.to_lowercase() }"#,
-    ty = "AsyncRedisCache<String, User<'_>>",
+    ty = "AsyncRedisCache<String, User>",
     create = r##"{ redis_cache_store(CACHE_PREFIX_GET_USER_BY_USERNAME_OR_EMAIL).await }"##
 )]
-pub(crate) async fn get_user_by_username_or_email(username_or_email: &str) -> sqlx::Result<User<'static>> {
+pub(crate) async fn get_user_by_username_or_email<'a>(username_or_email: &str) -> sqlx::Result<User<'a>> {
     if username_or_email.is_empty() {
         return Err(sqlx::Error::RowNotFound);
     }

@@ -1,7 +1,9 @@
+use cached::AsyncRedisCache;
+use cached::macros::concurrent_cached;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use crate::constants::ERROR_IS_INVALID;
+use crate::constants::{CACHE_PREFIX_GET_ALL_CARDS, ERROR_IS_INVALID};
 use crate::enums::ActivityAction;
 use crate::models::{Card, List, User};
 use crate::pagination::{CursorPage, CursorParams};
@@ -34,6 +36,12 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     Ok(true)
 }
 
+#[concurrent_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ list.id }"#,
+    ty = "AsyncRedisCache<Uuid, Vec<Card<'_>>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_ALL_CARDS).await }"##
+)]
 pub async fn get_all_cards<'a>(list: &List<'_>) -> sqlx::Result<Vec<Card<'a>>> {
     let db_pool = db_pool().await;
 
@@ -116,6 +124,10 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     Ok(card)
 }
 
+async fn remove_all_cards_cache(list: &List<'_>) {
+    GET_ALL_CARDS.cache_remove(CACHE_PREFIX_GET_ALL_CARDS, &list.id).await;
+}
+
 async fn suggest_card_position(list: &List<'_>) -> i16 {
     let db_pool = db_pool().await;
 
@@ -177,8 +189,9 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
 
     let mut position = card.position;
 
-    if card.list_id != params.list_id {
-        let list = card.list().await.or_validation_errors()?;
+    let list = card.list().await.or_validation_errors()?;
+
+    let new_list = if card.list_id != params.list_id {
         let new_list = get_visible_list_by_id(params.list_id, Some(user))
             .await
             .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
@@ -193,7 +206,11 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
         }
 
         position = suggest_card_position(&new_list).await;
-    }
+
+        Some(new_list)
+    } else {
+        None
+    };
 
     let labels = get_visible_labels_by_ids(&params.label_ids, Some(user))
         .await
@@ -218,6 +235,12 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
     .or_validation_errors()?;
 
     let _ = update_card_labels(&updated_card, &labels).await;
+
+    remove_all_cards_cache(&list).await;
+
+    if let Some(new_list) = new_list {
+        remove_all_cards_cache(&new_list).await;
+    }
 
     jobs_storage()
         .await
@@ -284,6 +307,9 @@ pub async fn update_card_list<'a>(
 
     transaction.commit().await.or_validation_errors()?;
 
+    remove_all_cards_cache(&list).await;
+    remove_all_cards_cache(new_list).await;
+
     jobs_storage()
         .await
         .push_activity(
@@ -304,6 +330,7 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     }
 
     let board = card.board().await.or_validation_errors()?;
+    let list = card.list().await.or_validation_errors()?;
 
     let mut transaction = db_pool().await.begin().await.or_validation_errors()?;
 
@@ -350,6 +377,8 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
     .or_validation_errors()?;
 
     transaction.commit().await.or_validation_errors()?;
+
+    remove_all_cards_cache(&list).await;
 
     jobs_storage()
         .await

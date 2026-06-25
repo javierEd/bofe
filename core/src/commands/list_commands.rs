@@ -1,13 +1,17 @@
 use uuid::Uuid;
 
 #[cfg(feature = "graphql")]
+use cached::AsyncRedisCache;
+#[cfg(feature = "graphql")]
+use cached::macros::concurrent_cached;
+#[cfg(feature = "graphql")]
 use validator::{Validate, ValidationErrors};
 
 use crate::db_pool;
 use crate::models::List;
 
 #[cfg(feature = "graphql")]
-use crate::constants::{ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
+use crate::constants::{CACHE_PREFIX_GET_ALL_LISTS, ERROR_ALREADY_EXISTS, ERROR_IS_INVALID};
 #[cfg(feature = "graphql")]
 use crate::enums::ActivityAction;
 #[cfg(feature = "graphql")]
@@ -20,7 +24,7 @@ use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
 
 #[cfg(feature = "graphql")]
-use super::{OrValidationErrors, ValidationResult, get_visible_board_by_id};
+use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, get_visible_board_by_id, redis_cache_store};
 
 #[cfg(feature = "graphql")]
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
@@ -64,6 +68,12 @@ async fn list_name_exists(board: &Board<'_>, list: Option<&List<'_>>, name: &str
 }
 
 #[cfg(feature = "graphql")]
+#[concurrent_cached(
+    map_error = r##"|_| sqlx::Error::RowNotFound"##,
+    convert = r#"{ board.id }"#,
+    ty = "AsyncRedisCache<Uuid, Vec<List<'_>>>",
+    create = r##"{ redis_cache_store(CACHE_PREFIX_GET_ALL_LISTS).await }"##
+)]
 pub async fn get_all_lists<'a>(board: &Board<'a>) -> sqlx::Result<Vec<List<'a>>> {
     let db_pool = db_pool().await;
 
@@ -192,6 +202,13 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
 }
 
 #[cfg(feature = "graphql")]
+pub async fn remove_list_cache(list: &List<'_>) {
+    GET_ALL_LISTS
+        .cache_remove(CACHE_PREFIX_GET_ALL_LISTS, &list.board_id)
+        .await;
+}
+
+#[cfg(feature = "graphql")]
 pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
@@ -226,6 +243,8 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateLis
     .fetch_one(db_pool)
     .await
     .or_validation_errors()?;
+
+    remove_list_cache(list).await;
 
     jobs_storage()
         .await
@@ -288,6 +307,8 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
     .or_validation_errors()?;
 
     transaction.commit().await.or_validation_errors()?;
+
+    remove_list_cache(list).await;
 
     jobs_storage()
         .await
