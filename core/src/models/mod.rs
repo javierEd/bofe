@@ -48,7 +48,7 @@ pub struct Application<'a> {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Attachment<'a> {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub blob_id: Uuid,
     pub file_name: Cow<'a, str>,
     pub created_at: DateTime<Utc>,

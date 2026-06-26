@@ -147,11 +147,10 @@ pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> Validatio
 
     let label = sqlx::query_as!(
         Label,
-        "INSERT INTO labels (board_id, user_id, name, color_code) VALUES ($1, $2, $3, $4) RETURNING *",
+        "INSERT INTO labels (board_id, name, color_code) VALUES ($1, $2, $3) RETURNING *",
         board.id,               // $1
-        user.id,                // $2
-        name,                   // $3
-        params.color_code as _, // $4
+        name,                   // $2
+        params.color_code as _, // $3
     )
     .fetch_one(db_pool)
     .await

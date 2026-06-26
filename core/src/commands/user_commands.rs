@@ -16,13 +16,7 @@ use crate::jobs_storage;
 #[cfg(feature = "graphql")]
 use crate::params::{UpdateProfileParams, UserParams};
 
-use super::redis_cache_store;
-
-#[cfg(feature = "graphql")]
-use super::text_icon;
-
-#[cfg(feature = "graphql")]
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, encrypt_password};
+use super::*;
 
 #[cfg(feature = "graphql")]
 pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &str) -> sqlx::Result<User<'a>> {
@@ -33,6 +27,25 @@ pub(crate) async fn authenticate_user<'a>(username_or_email: &str, password: &st
     } else {
         Err(sqlx::Error::RowNotFound)
     }
+}
+
+#[cfg(feature = "graphql")]
+pub(crate) async fn delete_user(user: &User<'_>) -> sqlx::Result<bool> {
+    if has_boards(user).await {
+        return Err(sqlx::Error::InvalidArgument("Cannot have boards".to_owned()));
+    }
+
+    let db_pool = db_pool().await;
+
+    let _ = finish_all_sessions(user).await;
+
+    sqlx::query!("DELETE FROM users WHERE id = $1", user.id)
+        .execute(db_pool)
+        .await?;
+
+    remove_user_cache(user).await;
+
+    Ok(true)
 }
 
 #[cfg(feature = "graphql")]
