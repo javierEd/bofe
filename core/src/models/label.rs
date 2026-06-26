@@ -13,7 +13,6 @@ use super::{Board, User};
 pub struct Label<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
-    pub user_id: Uuid,
     pub name: Cow<'a, str>,
     pub color_code: ColorCode,
     pub created_at: DateTime<Utc>,

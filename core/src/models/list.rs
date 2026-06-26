@@ -11,8 +11,6 @@ use crate::models::{Board, User};
 pub struct List<'a> {
     pub id: Uuid,
     pub board_id: Uuid,
-    #[allow(dead_code)]
-    pub user_id: Uuid,
     pub name: Cow<'a, str>,
     pub position: i16,
     pub created_at: DateTime<Utc>,

@@ -14,8 +14,8 @@ impl ActivityObject {
         self.0.id.into()
     }
 
-    async fn user(&self) -> Result<UserObject<'_>> {
-        Ok(self.0.user().await.map(UserObject)?)
+    async fn user(&self) -> Option<UserObject<'_>> {
+        self.0.user().await.map(UserObject)
     }
 
     async fn board(&self) -> Result<BoardObject<'_>> {

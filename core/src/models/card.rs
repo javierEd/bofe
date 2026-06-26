@@ -11,7 +11,7 @@ use crate::models::{Board, Label, List, User};
 pub struct Card<'a> {
     pub id: Uuid,
     pub list_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub content: Cow<'a, str>,
     pub position: i16,
     pub created_at: DateTime<Utc>,
@@ -26,8 +26,12 @@ impl Card<'_> {
         commands::get_list_by_id(self.list_id).await
     }
 
-    pub async fn user(&self) -> sqlx::Result<User<'_>> {
-        commands::get_user_by_id(self.user_id).await
+    pub async fn user(&self) -> Option<User<'_>> {
+        if let Some(user_id) = self.user_id {
+            commands::get_user_by_id(user_id).await.ok()
+        } else {
+            None
+        }
     }
 
     pub async fn all_label_ids(&self) -> sqlx::Result<Vec<Uuid>> {
@@ -70,7 +74,7 @@ impl Card<'_> {
     ///
     /// Only the owner of the card can edit the card
     pub fn is_editable(&self, user: &User) -> bool {
-        self.user_id == user.id
+        self.user_id == Some(user.id)
     }
 
     /// Returns true if the user can move the card

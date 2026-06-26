@@ -141,11 +141,10 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
 
     let list = sqlx::query_as!(
         List,
-        "INSERT INTO lists (board_id, user_id, name, position) VALUES ($1, $2, $3, $4) RETURNING *",
+        "INSERT INTO lists (board_id, name, position) VALUES ($1, $2, $3) RETURNING *",
         board.id, // $1
-        user.id,  // $2
-        name,     // $3
-        position, // $4
+        name,     // $2
+        position, // $3
     )
     .fetch_one(db_pool)
     .await

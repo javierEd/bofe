@@ -11,7 +11,7 @@ use super::{Board, Card, List, User};
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Activity {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub board_id: Uuid,
     pub action: ActivityAction,
     pub target_id: Uuid,
@@ -20,8 +20,12 @@ pub struct Activity {
 }
 
 impl Activity {
-    pub async fn user(&self) -> sqlx::Result<User<'_>> {
-        commands::get_user_by_id(self.user_id).await
+    pub async fn user(&self) -> Option<User<'_>> {
+        if let Some(user_id) = self.user_id {
+            commands::get_user_by_id(user_id).await.ok()
+        } else {
+            None
+        }
     }
 
     pub async fn board(&self) -> sqlx::Result<Board<'_>> {
