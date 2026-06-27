@@ -18,6 +18,7 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     }
 
     let board = card.board().await?;
+    let list = card.list().await?;
 
     let db_pool = db_pool().await;
 
@@ -27,6 +28,8 @@ pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Resul
     )
     .execute(db_pool)
     .await?;
+
+    remove_all_cards_cache(&list).await;
 
     jobs_storage()
         .await
@@ -115,6 +118,8 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .or_validation_errors()?;
 
     let _ = insert_card_labels(&card, &labels).await;
+
+    remove_all_cards_cache(&list).await;
 
     jobs_storage()
         .await
