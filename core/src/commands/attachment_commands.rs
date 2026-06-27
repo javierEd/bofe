@@ -25,6 +25,18 @@ pub async fn get_attachment_by_id<'a>(id: Uuid) -> sqlx::Result<Attachment<'a>> 
     .await
 }
 
+pub async fn get_attachments_by_ids<'a>(ids: &[Uuid]) -> sqlx::Result<Vec<Attachment<'a>>> {
+    let db_pool = db_pool().await;
+
+    sqlx::query_as!(
+        Attachment,
+        "SELECT * FROM attachments WHERE id = ANY($1)",
+        ids, // $1
+    )
+    .fetch_all(db_pool)
+    .await
+}
+
 pub async fn get_or_insert_attachment<'a>(
     user: &User<'_>,
     blob: &Blob<'_>,

@@ -1,7 +1,8 @@
-use std::borrow::Cow;
 use std::fmt::Display;
 use std::future::Future;
 
+#[cfg(feature = "graphql")]
+use std::borrow::Cow;
 #[cfg(feature = "graphql")]
 use std::hash::{DefaultHasher, Hash, Hasher};
 
@@ -38,11 +39,8 @@ use validator::{ValidationError, ValidationErrors};
 
 mod activity_commands;
 mod board_commands;
-mod card_label_commands;
 mod confirmation_commands;
 mod im_database_commands;
-mod label_commands;
-mod list_commands;
 mod member_commands;
 mod session_commands;
 mod user_commands;
@@ -56,7 +54,15 @@ mod attachment_key_commands;
 #[cfg(feature = "graphql")]
 mod blob_commands;
 #[cfg(feature = "graphql")]
+mod card_attachment_commands;
+#[cfg(feature = "graphql")]
 mod card_commands;
+#[cfg(feature = "graphql")]
+mod card_label_commands;
+#[cfg(feature = "graphql")]
+mod label_commands;
+#[cfg(feature = "graphql")]
+mod list_commands;
 #[cfg(feature = "graphql")]
 mod user_email_commands;
 #[cfg(feature = "graphql")]
@@ -64,11 +70,8 @@ mod user_password_commands;
 
 pub use activity_commands::*;
 pub use board_commands::*;
-pub(crate) use card_label_commands::*;
 pub use confirmation_commands::*;
 pub(crate) use im_database_commands::*;
-pub(crate) use label_commands::*;
-pub(crate) use list_commands::*;
 pub(crate) use member_commands::*;
 pub use session_commands::*;
 pub use user_commands::*;
@@ -82,17 +85,26 @@ pub use attachment_key_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use blob_commands::*;
 #[cfg(feature = "graphql")]
+pub(crate) use card_attachment_commands::*;
+#[cfg(feature = "graphql")]
 pub(crate) use card_commands::*;
+#[cfg(feature = "graphql")]
+pub(crate) use card_label_commands::*;
+#[cfg(feature = "graphql")]
+pub(crate) use label_commands::*;
+#[cfg(feature = "graphql")]
+pub(crate) use list_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use user_email_commands::*;
 #[cfg(feature = "graphql")]
 pub(crate) use user_password_commands::*;
 
 use crate::config::CACHE_CONFIG;
-use crate::constants::STRIP_MARKDOWN_RULES;
 
 #[cfg(feature = "graphql")]
 use crate::config::STORAGE_CONFIG;
+#[cfg(feature = "graphql")]
+use crate::constants::STRIP_MARKDOWN_RULES;
 
 #[cfg(feature = "graphql")]
 type ValidationResult<T = ()> = Result<T, ValidationErrors>;
@@ -159,6 +171,7 @@ fn get_available_space() -> ByteSize {
     ByteSize(stats.f_bavail * stats.f_bsize as u64)
 }
 
+#[cfg(feature = "graphql")]
 pub(crate) fn markdown_to_text(input: &str) -> String {
     let mut text = Cow::Borrowed(input);
 

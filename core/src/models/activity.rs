@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::commands;
 use crate::enums::ActivityAction;
 
+#[cfg(feature = "graphql")]
+use crate::commands;
+
+#[cfg(feature = "graphql")]
 use super::{Board, Card, List, User};
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -19,6 +22,7 @@ pub struct Activity {
     pub created_at: DateTime<Utc>,
 }
 
+#[cfg(feature = "graphql")]
 impl Activity {
     pub async fn user(&self) -> Option<User<'_>> {
         if let Some(user_id) = self.user_id {
@@ -33,10 +37,12 @@ impl Activity {
     }
 }
 
+#[cfg(feature = "graphql")]
 pub trait ActivityExt<T> {
     fn data(&self) -> Option<T>;
 }
 
+#[cfg(feature = "graphql")]
 impl<'a> ActivityExt<Board<'a>> for Activity {
     fn data(&self) -> Option<Board<'a>> {
         match self.action {
@@ -49,6 +55,7 @@ impl<'a> ActivityExt<Board<'a>> for Activity {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl<'a> ActivityExt<Card<'a>> for Activity {
     fn data(&self) -> Option<Card<'a>> {
         match self.action {
@@ -64,6 +71,7 @@ impl<'a> ActivityExt<Card<'a>> for Activity {
     }
 }
 
+#[cfg(feature = "graphql")]
 impl<'a> ActivityExt<List<'a>> for Activity {
     fn data(&self) -> Option<List<'a>> {
         match self.action {

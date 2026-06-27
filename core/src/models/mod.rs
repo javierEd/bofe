@@ -21,17 +21,43 @@ use crate::config::STORAGE_CONFIG;
 
 mod activity;
 mod board;
-mod card;
-mod label;
-mod list;
 mod user;
 
-pub use activity::{Activity, ActivityExt};
+#[cfg(feature = "graphql")]
+mod card;
+#[cfg(feature = "graphql")]
+mod label;
+#[cfg(feature = "graphql")]
+mod list;
+
+pub use activity::Activity;
 pub(crate) use board::Board;
-pub(crate) use card::Card;
-pub(crate) use label::Label;
-pub(crate) use list::List;
 pub use user::User;
+
+#[cfg(feature = "graphql")]
+pub(crate) use activity::ActivityExt;
+#[cfg(feature = "graphql")]
+pub(crate) use card::Card;
+#[cfg(feature = "graphql")]
+pub(crate) use label::Label;
+#[cfg(feature = "graphql")]
+pub(crate) use list::List;
+
+#[cfg(feature = "graphql")]
+#[derive(Clone, Deserialize, Serialize)]
+pub(crate) struct CardAttachment {
+    pub id: Uuid,
+    pub card_id: Uuid,
+    pub attachment_id: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+#[cfg(feature = "graphql")]
+impl CardAttachment {
+    pub async fn attachment<'a>(&self) -> sqlx::Result<Attachment<'a>> {
+        commands::get_attachment_by_id(self.attachment_id).await
+    }
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Application<'a> {
@@ -75,11 +101,22 @@ impl Attachment<'_> {
             .read()
     }
 
+    pub async fn thumbnail_url(&self, user: Option<&User<'_>>, width: u16, height: u16) -> anyhow::Result<Option<Url>> {
+        if self.file_type().await?.support_thumbnails() {
+            Ok(Some(
+                self.url(user)
+                    .await?
+                    .join(&format!("thumbnail?width={width}&height={height}"))?,
+            ))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub async fn url(&self, user: Option<&User<'_>>) -> anyhow::Result<Url> {
         let attachment_key = commands::insert_attachment_key(user, self).await?;
-        let file_url = STORAGE_CONFIG.url.join(&format!("attachments/{}", attachment_key.id))?;
 
-        Ok(file_url)
+        Ok(STORAGE_CONFIG.url.join(&format!("attachments/{}", attachment_key.id))?)
     }
 }
 
@@ -142,6 +179,7 @@ impl Blob<'_> {
     }
 }
 
+#[cfg(feature = "graphql")]
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct CardLabel {
     #[allow(dead_code)]
@@ -153,6 +191,7 @@ pub(crate) struct CardLabel {
     pub created_at: DateTime<Utc>,
 }
 
+#[cfg(feature = "graphql")]
 impl CardLabel {
     pub async fn label<'a>(&self) -> sqlx::Result<Label<'a>> {
         commands::get_label_by_id(self.label_id).await

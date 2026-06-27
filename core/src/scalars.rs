@@ -1,9 +1,6 @@
+use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "graphql")]
-use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
-
-#[cfg(feature = "graphql")]
 use crate::constants::REGEX_COLOR_CODE;
 
 #[derive(sqlx::Type, Clone, Deserialize, Serialize)]
@@ -16,7 +13,6 @@ impl From<String> for ColorCode {
     }
 }
 
-#[cfg(feature = "graphql")]
 #[Scalar]
 impl ScalarType for ColorCode {
     fn parse(value: Value) -> InputValueResult<Self> {
