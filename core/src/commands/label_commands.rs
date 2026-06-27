@@ -106,15 +106,16 @@ pub async fn get_visible_label_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
 }
 
 #[cfg(feature = "graphql")]
-pub async fn get_visible_labels_by_ids<'a>(
-    ids: &[Uuid],
-    target_user: Option<&User<'_>>,
-) -> sqlx::Result<Vec<Label<'a>>> {
-    if ids.is_empty() {
-        return Ok(Vec::new());
-    }
+pub async fn get_labels_by_ids<'a>(ids: &[Uuid]) -> sqlx::Result<Vec<Label<'a>>> {
+    let db_pool = db_pool().await;
 
-    futures::future::try_join_all(ids.iter().map(|id| get_visible_label_by_id(*id, target_user))).await
+    sqlx::query_as!(
+        Label,
+        "SELECT * FROM labels WHERE id = ANY($1)",
+        ids, // $1
+    )
+    .fetch_all(db_pool)
+    .await
 }
 
 #[cfg(feature = "graphql")]

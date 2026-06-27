@@ -97,6 +97,8 @@ pub(crate) struct CardParams {
         length(max = 1024, message = "Must have at most 1024 characters")
     )]
     pub content: String,
+    #[cfg_attr(feature = "graphql", graphql(default))]
+    pub attachment_ids: Vec<Uuid>,
     pub label_ids: Vec<Uuid>,
 }
 

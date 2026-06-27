@@ -94,7 +94,10 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
         return Err(validation_errors);
     }
 
-    let labels = get_visible_labels_by_ids(&params.label_ids, Some(user))
+    let attachments = get_attachments_by_ids(&params.attachment_ids)
+        .await
+        .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
+    let labels = get_labels_by_ids(&params.label_ids)
         .await
         .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
@@ -117,6 +120,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
+    let _ = insert_card_attachments(&card, &attachments).await;
     let _ = insert_card_labels(&card, &labels).await;
 
     remove_all_cards_cache(&list).await;
@@ -176,13 +180,21 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) ->
 pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
+    let mut params_attachment_ids = params.attachment_ids.clone();
+    let mut card_attachment_ids = card.all_attachment_ids().await.unwrap_or_default();
     let mut params_label_ids = params.label_ids.clone();
     let mut card_label_ids = card.all_label_ids().await.unwrap_or_default();
 
+    params_attachment_ids.sort();
+    card_attachment_ids.sort();
     params_label_ids.sort();
     card_label_ids.sort();
 
-    if params.list_id == card.list_id && params.content == card.content && params_label_ids == card_label_ids {
+    if params.list_id == card.list_id
+        && params.content == card.content
+        && params_attachment_ids == card_attachment_ids
+        && params_label_ids == card_label_ids
+    {
         return Ok(card.clone());
     }
 
@@ -217,7 +229,11 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
         None
     };
 
-    let labels = get_visible_labels_by_ids(&params.label_ids, Some(user))
+    let attachments = get_attachments_by_ids(&params.attachment_ids)
+        .await
+        .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
+
+    let labels = get_labels_by_ids(&params.label_ids)
         .await
         .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
 
@@ -239,6 +255,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
     .await
     .or_validation_errors()?;
 
+    let _ = update_card_attachments(&updated_card, &attachments).await;
     let _ = update_card_labels(&updated_card, &labels).await;
 
     remove_all_cards_cache(&list).await;

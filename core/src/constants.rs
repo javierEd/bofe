@@ -1,8 +1,9 @@
+#[cfg(feature = "graphql")]
+use std::borrow::Cow;
+#[cfg(feature = "graphql")]
 use std::sync::LazyLock;
 
 #[cfg(feature = "graphql")]
-use std::borrow::Cow;
-
 use regex::Regex;
 
 #[cfg(feature = "graphql")]
@@ -41,6 +42,9 @@ pub const BLACKLISTED_USERNAMES: [&str; 26] = [
 pub const CACHE_PREFIX_GET_ACTIVITY_BY_ID: &str = "get_activity_by_id";
 #[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_ALL_CARDS: &str = "get_all_cards";
+#[cfg(feature = "graphql")]
+pub const CACHE_PREFIX_GET_ALL_CARD_ATTACHMENTS: &str = "get_all_card_attachments";
+#[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_ALL_CARD_LABELS: &str = "get_all_card_labels";
 #[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_ALL_LABELS: &str = "get_all_labels";
@@ -57,6 +61,7 @@ pub const CACHE_PREFIX_GET_BLOB_BY_ID: &str = "get_blob_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_ID: &str = "get_board_by_id";
 pub const CACHE_PREFIX_GET_BOARD_BY_SLUG: &str = "get_board_by_slug";
 pub const CACHE_PREFIX_GET_BOARD_BY_USER_AND_SLUG: &str = "get_board_by_user_and_slug";
+#[cfg(feature = "graphql")]
 pub const CACHE_PREFIX_GET_LABEL_BY_ID: &str = "get_label_by_id";
 pub const CACHE_PREFIX_GET_MEMBER: &str = "get_member";
 pub const CACHE_PREFIX_GET_MEMBER_BY_ID: &str = "get_member_by_id";
@@ -106,6 +111,7 @@ pub static REGEX_SLUG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[[:alnu
 #[cfg(feature = "graphql")]
 pub static REGEX_USERNAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[-_.]?([[:alnum:]]+[-_.]?)+\z").unwrap());
 
+#[cfg(feature = "graphql")]
 pub static STRIP_MARKDOWN_RULES: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
     vec![
         // Headers (e.g., # Header) -> completely strip syntax

@@ -1,10 +1,12 @@
 use async_graphql::{Context, ID, Object, Result};
 use chrono::{DateTime, Utc};
 
+use crate::commands;
+use crate::graphql::IDExt;
 use crate::graphql::context::CustomExt;
 use crate::models::Card;
 
-use super::{BoardObject, LabelObject, ListObject, UserObject};
+use super::{AttachmentObject, BoardObject, LabelObject, ListObject, UserObject};
 
 pub struct CardObject<'a>(pub Card<'a>);
 
@@ -28,6 +30,26 @@ impl CardObject<'_> {
 
     async fn content(&self, max_length: Option<u16>, strip_markdown: Option<bool>) -> String {
         self.0.content(max_length, strip_markdown)
+    }
+
+    async fn attachment(&self, id: ID) -> Result<Option<AttachmentObject<'_>>> {
+        let id = id.try_into_uuid()?;
+
+        let Ok(card_attachment) = commands::get_card_attachment(self.0.id, id).await else {
+            return Ok(None);
+        };
+
+        Ok(Some(card_attachment.attachment().await.map(AttachmentObject)?))
+    }
+
+    async fn all_attachments(&self) -> Result<Vec<AttachmentObject<'_>>> {
+        Ok(self
+            .0
+            .all_attachments()
+            .await?
+            .into_iter()
+            .map(AttachmentObject)
+            .collect())
     }
 
     async fn all_labels(&self) -> Result<Vec<LabelObject<'_>>> {

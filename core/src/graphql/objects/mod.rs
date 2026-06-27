@@ -29,6 +29,17 @@ impl AttachmentObject<'_> {
         self.0.id.into()
     }
 
+    async fn thumbnail_url(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(default = 256)] width: u16,
+        #[graphql(default = 256)] height: u16,
+    ) -> Result<Option<Url>> {
+        let user = ctx.user_opt();
+
+        Ok(self.0.thumbnail_url(user, width, height).await?)
+    }
+
     async fn url(&self, ctx: &Context<'_>) -> Result<Url> {
         let user = ctx.user_opt();
 

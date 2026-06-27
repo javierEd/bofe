@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::commands;
-use crate::models::{Board, Label, List, User};
+use crate::models::{Attachment, Board, Label, List, User};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Card<'a> {
@@ -32,6 +32,22 @@ impl Card<'_> {
         } else {
             None
         }
+    }
+
+    pub async fn all_attachment_ids(&self) -> sqlx::Result<Vec<Uuid>> {
+        self.all_attachments()
+            .await
+            .map(|attachments| attachments.iter().map(|attachment| attachment.id).collect())
+    }
+
+    pub async fn all_attachments(&self) -> sqlx::Result<Vec<Attachment<'_>>> {
+        futures::future::try_join_all(
+            commands::get_all_card_attachments(self)
+                .await?
+                .iter()
+                .map(|card_attachment| card_attachment.attachment()),
+        )
+        .await
     }
 
     pub async fn all_label_ids(&self) -> sqlx::Result<Vec<Uuid>> {
