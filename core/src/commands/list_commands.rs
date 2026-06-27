@@ -43,6 +43,8 @@ pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Resul
     .execute(db_pool)
     .await?;
 
+    remove_all_lists_cache(&board).await;
+
     jobs_storage()
         .await
         .push_activity(user, &board, ActivityAction::DeleteList, list, &())
@@ -150,6 +152,8 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
+    remove_all_lists_cache(&board).await;
+
     jobs_storage()
         .await
         .push_activity(user, &board, ActivityAction::CreateList, &list, &list)
@@ -201,10 +205,8 @@ pub async fn paginate_lists<'a>(cursor_params: CursorParams, board: &Board<'a>) 
 }
 
 #[cfg(feature = "graphql")]
-pub async fn remove_list_cache(list: &List<'_>) {
-    GET_ALL_LISTS
-        .cache_remove(CACHE_PREFIX_GET_ALL_LISTS, &list.board_id)
-        .await;
+pub async fn remove_all_lists_cache(board: &Board<'_>) {
+    GET_ALL_LISTS.cache_remove(CACHE_PREFIX_GET_ALL_LISTS, &board.id).await;
 }
 
 #[cfg(feature = "graphql")]
@@ -243,7 +245,7 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateLis
     .await
     .or_validation_errors()?;
 
-    remove_list_cache(list).await;
+    remove_all_lists_cache(&board).await;
 
     jobs_storage()
         .await
@@ -307,7 +309,7 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
 
     transaction.commit().await.or_validation_errors()?;
 
-    remove_list_cache(list).await;
+    remove_all_lists_cache(&board).await;
 
     jobs_storage()
         .await
