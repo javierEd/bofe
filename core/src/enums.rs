@@ -1,6 +1,6 @@
 use std::fmt::Display;
-use std::fs::File;
 
+use bytes::Bytes;
 use file_format::FileFormat;
 use fluent_templates::{LanguageIdentifier, langid};
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,8 @@ pub enum ActivityAction {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(sqlx::Type, Clone, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::Enum))]
+#[derive(sqlx::Type, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
 #[sqlx(type_name = "blob_file_type")]
 pub enum BlobFileType {
     #[sqlx(rename = "image/gif")]
@@ -49,11 +50,11 @@ impl Display for BlobFileType {
     }
 }
 
-impl TryFrom<&File> for BlobFileType {
+impl TryFrom<&Bytes> for BlobFileType {
     type Error = std::io::Error;
 
-    fn try_from(value: &File) -> Result<Self, Self::Error> {
-        let file_format = FileFormat::from_reader(value)?;
+    fn try_from(value: &Bytes) -> Result<Self, Self::Error> {
+        let file_format = FileFormat::from_bytes(value);
 
         match file_format {
             FileFormat::GraphicsInterchangeFormat => Ok(Self::ImageGif),

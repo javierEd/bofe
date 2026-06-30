@@ -78,6 +78,7 @@ impl MutationRoot {
         let l10n = ctx.l10n();
 
         let file = file.value(ctx)?;
+
         let blob = commands::get_or_insert_blob(&file.content)
             .await
             .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UPLOAD_FILE), None))?;

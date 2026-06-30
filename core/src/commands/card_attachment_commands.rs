@@ -39,6 +39,18 @@ pub async fn get_card_attachment(card_id: Uuid, attachment_id: Uuid) -> sqlx::Re
     .await
 }
 
+pub async fn get_card_attachments_count(card: &Card<'_>) -> sqlx::Result<i64> {
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "SELECT COUNT(*) FROM card_attachments WHERE card_id = $1 LIMIT 1",
+        card.id, // $1
+    )
+    .fetch_one(db_pool)
+    .await
+    .map(|record| record.count.unwrap_or_default())
+}
+
 pub async fn insert_card_attachments(card: &Card<'_>, attachments: &[Attachment<'_>]) -> sqlx::Result<()> {
     if attachments.is_empty() {
         return Ok(());

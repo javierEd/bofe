@@ -1,10 +1,7 @@
-use std::fs::File;
-use std::io::BufReader;
-
+use bytes::Bytes;
 use bytesize::ByteSize;
 use cached::AsyncRedisCache;
 use cached::macros::concurrent_cached;
-use digest_io::IoWrapper;
 use image::imageops::FilterType;
 use image::metadata::Orientation;
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader};
@@ -77,15 +74,15 @@ pub async fn get_blob_by_id<'a>(id: Uuid) -> sqlx::Result<Blob<'a>> {
     .await
 }
 
-pub async fn get_or_insert_blob(file: &File) -> sqlx::Result<Blob<'_>> {
-    let mut reader = BufReader::new(file);
-    let mut hasher = IoWrapper(Sha256::new());
+pub async fn get_or_insert_blob(content: &Bytes) -> sqlx::Result<Blob<'_>> {
+    let mut hasher = Sha256::new();
 
-    std::io::copy(&mut reader, &mut hasher)?;
+    hasher.update(content);
 
-    let file_type = BlobFileType::try_from(file)?;
-    let size_bytes = file.metadata()?.len();
-    let sha256_checksum = format!("{:?}", hasher.0.finalize());
+    let hash_bytes = hasher.finalize();
+    let sha256_checksum: String = hash_bytes.iter().map(|b| format!("{:02x}", b)).collect();
+    let file_type = BlobFileType::try_from(content)?;
+    let size_bytes = content.len();
 
     let db_pool = db_pool().await;
 
@@ -103,7 +100,7 @@ pub async fn get_or_insert_blob(file: &File) -> sqlx::Result<Blob<'_>> {
         return Ok(blob);
     }
 
-    if get_available_space() <= ByteSize(size_bytes) {
+    if get_available_space() <= ByteSize(size_bytes as u64) {
         return Err(sqlx::Error::Io(std::io::Error::other("Not enough space")));
     }
 
@@ -122,9 +119,7 @@ pub async fn get_or_insert_blob(file: &File) -> sqlx::Result<Blob<'_>> {
 
     std::fs::create_dir_all(blob.directory())?;
 
-    let mut dest_file = File::create(blob.path())?;
-
-    std::io::copy(&mut reader, &mut dest_file)?;
+    std::fs::write(blob.path(), content)?;
 
     transaction.commit().await?;
 

@@ -66,6 +66,10 @@ impl Card<'_> {
         .await
     }
 
+    pub async fn attachments_count(&self) -> sqlx::Result<i64> {
+        commands::get_card_attachments_count(self).await
+    }
+
     pub fn content(&self, max_length: Option<u16>, strip_markdown: Option<bool>) -> String {
         if max_length.is_none() && strip_markdown.is_none() {
             return self.content.to_string();

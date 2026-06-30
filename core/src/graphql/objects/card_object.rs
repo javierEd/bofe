@@ -56,6 +56,10 @@ impl CardObject<'_> {
         Ok(self.0.all_labels().await?.into_iter().map(LabelObject).collect())
     }
 
+    async fn attachments_count(&self) -> Result<i64> {
+        Ok(self.0.attachments_count().await?)
+    }
+
     async fn position(&self) -> i16 {
         self.0.position
     }

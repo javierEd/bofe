@@ -94,12 +94,18 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
         return Err(validation_errors);
     }
 
-    let attachments = get_attachments_by_ids(&params.attachment_ids)
-        .await
-        .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
-    let labels = get_labels_by_ids(&params.label_ids)
-        .await
-        .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
+    let (attachments, labels) = tokio::try_join!(
+        async {
+            get_attachments_by_ids(&params.attachment_ids)
+                .await
+                .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())
+        },
+        async {
+            get_labels_by_ids(&params.label_ids)
+                .await
+                .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())
+        },
+    )?;
 
     let board = list.board().await.or_validation_errors()?;
 
@@ -120,8 +126,10 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
     .await
     .or_validation_errors()?;
 
-    let _ = insert_card_attachments(&card, &attachments).await;
-    let _ = insert_card_labels(&card, &labels).await;
+    let _ = tokio::try_join!(
+        insert_card_attachments(&card, &attachments),
+        insert_card_labels(&card, &labels)
+    );
 
     remove_all_cards_cache(&list).await;
 

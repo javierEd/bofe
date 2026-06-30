@@ -94,6 +94,10 @@ impl Attachment<'_> {
         Ok(self.blob().await?.file_type)
     }
 
+    pub async fn size(&self) -> sqlx::Result<i64> {
+        Ok(self.blob().await?.size_bytes)
+    }
+
     pub async fn read(&self) -> std::io::Result<Vec<u8>> {
         self.blob()
             .await
@@ -103,11 +107,12 @@ impl Attachment<'_> {
 
     pub async fn thumbnail_url(&self, user: Option<&User<'_>>, width: u16, height: u16) -> anyhow::Result<Option<Url>> {
         if self.file_type().await?.support_thumbnails() {
-            Ok(Some(
-                self.url(user)
-                    .await?
-                    .join(&format!("thumbnail?width={width}&height={height}"))?,
-            ))
+            let attachment_key = commands::insert_attachment_key(user, self).await?;
+
+            Ok(Some(STORAGE_CONFIG.url.join(&format!(
+                "attachments/{}/thumbnail?width={width}&height={height}",
+                attachment_key.id
+            ))?))
         } else {
             Ok(None)
         }
