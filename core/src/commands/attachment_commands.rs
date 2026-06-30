@@ -26,6 +26,10 @@ pub async fn get_attachment_by_id<'a>(id: Uuid) -> sqlx::Result<Attachment<'a>> 
 }
 
 pub async fn get_attachments_by_ids<'a>(ids: &[Uuid]) -> sqlx::Result<Vec<Attachment<'a>>> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

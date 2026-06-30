@@ -107,6 +107,10 @@ pub async fn get_visible_label_by_id<'a>(id: Uuid, target_user: Option<&User<'_>
 
 #[cfg(feature = "graphql")]
 pub async fn get_labels_by_ids<'a>(ids: &[Uuid]) -> sqlx::Result<Vec<Label<'a>>> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
     let db_pool = db_pool().await;
 
     sqlx::query_as!(

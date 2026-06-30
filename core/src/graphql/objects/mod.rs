@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
+use crate::enums::BlobFileType;
 use crate::graphql::context::CustomExt;
 use crate::models::{Attachment, Confirmation, List, Member, Session};
 use crate::pagination::CursorParams;
@@ -27,6 +28,18 @@ pub struct AttachmentObject<'a>(pub Attachment<'a>);
 impl AttachmentObject<'_> {
     async fn id(&self) -> ID {
         self.0.id.into()
+    }
+
+    async fn file_name(&self) -> &str {
+        &self.0.file_name
+    }
+
+    async fn file_type(&self) -> Result<BlobFileType> {
+        Ok(self.0.file_type().await?)
+    }
+
+    async fn size(&self) -> Result<i64> {
+        Ok(self.0.size().await?)
     }
 
     async fn thumbnail_url(
