@@ -161,6 +161,8 @@ pub async fn insert_label<'a>(user: &User<'_>, params: LabelParams) -> Validatio
     .await
     .or_validation_errors()?;
 
+    remove_label_cache(&label).await;
+
     let _ = notify_board_channel(&board).await;
 
     Ok(label)
