@@ -3,7 +3,7 @@ resolver = "3"
 members = ["api", "cli", "core", "monitor"]
 
 [workspace.package]
-version = "0.0.0-alpha.18"
+version = "0.0.0-alpha.19"
 edition = "2024"
 authors = ["Javier E. <jaedns@gmail.com>"]
 homepage = "https://about.bofe.app"
@@ -23,5 +23,5 @@ tokio = { version = "1.52.3", features = [
 ] }
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
-uuid = { version = "1.23.3", features = ["serde"] }
+uuid = { version = "1.23.4", features = ["serde"] }
 bofe-core.path = "./core"

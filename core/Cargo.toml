@@ -11,7 +11,7 @@ chrono.workspace = true
 
 [dependencies]
 ab_glyph = { version = "0.2.32", optional = true }
-anyhow = "1.0.102"
+anyhow = "1.0.103"
 apalis.workspace = true
 apalis-redis = "1.0.0-rc.8"
 async-graphql = { workspace = true, features = [
@@ -42,7 +42,7 @@ image = { version = "0.25.10", optional = true }
 imageproc = { version = "0.27.0", optional = true }
 rand = { version = "0.10.1", optional = true }
 rand_core = { version = "0.6.4", features = ["getrandom"] }
-redis = "1.2.2"
+redis = "1.3.0"
 regex = { version = "1.12.4", optional = true }
 rust_iso3166 = "0.2.0"
 serde.workspace = true
