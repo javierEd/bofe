@@ -82,23 +82,46 @@ pub async fn get_visible_card_by_id<'a>(id: Uuid, user: Option<&User<'_>>) -> sq
 pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationResult<Card<'a>> {
     params.validate()?;
 
-    let mut validation_errors = ValidationErrors::new();
-
-    let list = get_visible_list_by_id(params.list_id, Some(user))
-        .await
-        .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
-
-    if !list.can_create_card(user).await.or_validation_errors()? {
-        validation_errors.add("list_id", ERROR_IS_INVALID.clone());
-
-        return Err(validation_errors);
-    }
-
-    let (attachments, labels) = tokio::try_join!(
+    let (list, cover_image_attachment, attachments, labels) = tokio::try_join!(
         async {
-            get_attachments_by_ids(&params.attachment_ids)
+            let list = get_visible_list_by_id(params.list_id, Some(user))
                 .await
-                .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())
+                .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
+
+            if !list.can_create_card(user).await.or_validation_errors()? {
+                return Err(ValidationErrors::with("list_id", ERROR_IS_INVALID.clone()));
+            }
+
+            Ok(list)
+        },
+        async {
+            if let Some(cover_image_attachment_id) = params.cover_image_attachment_id {
+                let cover_image_attachment = get_attachment_by_id(cover_image_attachment_id)
+                    .await
+                    .or_validation_errors_with("cover_image_attachment_id", ERROR_IS_INVALID.clone())?;
+
+                if cover_image_attachment.user_id != Some(user.id) {
+                    return Err(ValidationErrors::with(
+                        "cover_image_attachment_id",
+                        ERROR_IS_INVALID.clone(),
+                    ));
+                }
+
+                Ok(Some(cover_image_attachment))
+            } else {
+                Ok(None)
+            }
+        },
+        async {
+            let attachments = get_attachments_by_ids(&params.attachment_ids)
+                .await
+                .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
+
+            if attachments.iter().any(|attachment| attachment.user_id != Some(user.id)) {
+                return Err(ValidationErrors::with("attachment_ids", ERROR_IS_INVALID.clone()));
+            }
+
+            Ok(attachments)
         },
         async {
             get_labels_by_ids(&params.label_ids)
@@ -109,6 +132,7 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let board = list.board().await.or_validation_errors()?;
 
+    let cover_image_attachment_id = cover_image_attachment.map(|attachment| attachment.id);
     let content = params.content.trim();
     let position = suggest_card_position(&list).await;
 
@@ -116,11 +140,12 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let card = sqlx::query_as!(
         Card,
-        "INSERT INTO cards (list_id, user_id, content, position) VALUES ($1, $2, $3, $4) RETURNING *",
+        "INSERT INTO cards (list_id, user_id, cover_image_attachment_id, content, position) VALUES ($1, $2, $3, $4, $5) RETURNING *",
         list.id,  // $1
         user.id,  // $2
-        content,  // $3
-        position, // $4
+        cover_image_attachment_id, // $3
+        content,  // $4
+        position, // $5
     )
     .fetch_one(db_pool)
     .await
@@ -199,6 +224,7 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
     card_label_ids.sort();
 
     if params.list_id == card.list_id
+        && params.cover_image_attachment_id == card.cover_image_attachment_id
         && params.content == card.content
         && params_attachment_ids == card_attachment_ids
         && params_label_ids == card_label_ids
@@ -206,58 +232,91 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
         return Ok(card.clone());
     }
 
-    let mut validation_errors = ValidationErrors::new();
-
     if !card.is_editable(user) {
-        return Err(validation_errors);
+        return Err(ValidationErrors::with("list_id", ERROR_IS_INVALID.clone()));
     }
 
     let mut position = card.position;
 
+    let board = card.board().await.or_validation_errors()?;
     let list = card.list().await.or_validation_errors()?;
 
-    let new_list = if card.list_id != params.list_id {
-        let new_list = get_visible_list_by_id(params.list_id, Some(user))
-            .await
-            .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
+    let (new_list, cover_image_attachment, attachments, labels) = tokio::try_join!(
+        async {
+            if card.list_id != params.list_id {
+                let new_list = get_visible_list_by_id(params.list_id, Some(user))
+                    .await
+                    .or_validation_errors_with("list_id", ERROR_IS_INVALID.clone())?;
 
-        if !card.is_movable(user).await.or_validation_errors()?
-            || !new_list.can_move_card(user).await.or_validation_errors()?
-            || list.board_id != new_list.board_id
-        {
-            validation_errors.add("list_id", ERROR_IS_INVALID.clone());
+                if !card.is_movable(user).await.or_validation_errors()?
+                    || !new_list.can_move_card(user).await.or_validation_errors()?
+                    || list.board_id != new_list.board_id
+                {
+                    return Err(ValidationErrors::with("list_id", ERROR_IS_INVALID.clone()));
+                }
 
-            return Err(validation_errors);
+                position = suggest_card_position(&new_list).await;
+
+                Ok(Some(new_list))
+            } else {
+                Ok(None)
+            }
+        },
+        async {
+            if let Some(cover_image_attachment_id) = params.cover_image_attachment_id {
+                let cover_image_attachment = get_attachment_by_id(cover_image_attachment_id)
+                    .await
+                    .or_validation_errors_with("cover_image_attachment_id", ERROR_IS_INVALID.clone())?;
+
+                if cover_image_attachment.user_id != Some(user.id) {
+                    return Err(ValidationErrors::with(
+                        "cover_image_attachment_id",
+                        ERROR_IS_INVALID.clone(),
+                    ));
+                }
+
+                Ok(Some(cover_image_attachment))
+            } else {
+                Ok(None)
+            }
+        },
+        async {
+            let attachments = get_attachments_by_ids(&params.attachment_ids)
+                .await
+                .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
+
+            if attachments.iter().any(|attachment| attachment.user_id != Some(user.id)) {
+                return Err(ValidationErrors::with("attachment_ids", ERROR_IS_INVALID.clone()));
+            }
+
+            Ok(attachments)
+        },
+        async {
+            let labels = get_labels_by_ids(&params.label_ids)
+                .await
+                .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
+
+            if labels.iter().any(|label| label.board_id != board.id) {
+                return Err(ValidationErrors::with("label_ids", ERROR_IS_INVALID.clone()));
+            }
+
+            Ok(labels)
         }
+    )?;
 
-        position = suggest_card_position(&new_list).await;
-
-        Some(new_list)
-    } else {
-        None
-    };
-
-    let attachments = get_attachments_by_ids(&params.attachment_ids)
-        .await
-        .or_validation_errors_with("attachment_ids", ERROR_IS_INVALID.clone())?;
-
-    let labels = get_labels_by_ids(&params.label_ids)
-        .await
-        .or_validation_errors_with("label_ids", ERROR_IS_INVALID.clone())?;
-
-    let board = card.board().await.or_validation_errors()?;
-
+    let cover_image_attachment_id = cover_image_attachment.map(|attachment| attachment.id);
     let content = params.content.trim();
 
     let db_pool = db_pool().await;
 
     let updated_card = sqlx::query_as!(
         Card,
-        "UPDATE cards SET list_id = $2, content = $3, position = $4 WHERE id = $1 RETURNING *",
+        "UPDATE cards SET list_id = $2, cover_image_attachment_id = $3, content = $4, position = $5 WHERE id = $1 RETURNING *",
         card.id,        // $1
         params.list_id, // $2
-        content,        // $3
-        position,       // $4
+        cover_image_attachment_id, // $3
+        content,        // $4
+        position,       // $5
     )
     .fetch_one(db_pool)
     .await

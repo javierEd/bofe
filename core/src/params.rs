@@ -92,6 +92,7 @@ pub(crate) struct BoardParams {
 #[derive(Validate)]
 pub(crate) struct CardParams {
     pub list_id: Uuid,
+    pub cover_image_attachment_id: Option<Uuid>,
     #[validate(
         custom(function = "validate_presence"),
         length(max = 1024, message = "Must have at most 1024 characters")

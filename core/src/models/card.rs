@@ -12,6 +12,7 @@ pub struct Card<'a> {
     pub id: Uuid,
     pub list_id: Uuid,
     pub user_id: Option<Uuid>,
+    pub cover_image_attachment_id: Option<Uuid>,
     pub content: Cow<'a, str>,
     pub position: i16,
     pub created_at: DateTime<Utc>,
@@ -26,11 +27,19 @@ impl Card<'_> {
         commands::get_list_by_id(self.list_id).await
     }
 
-    pub async fn user(&self) -> Option<User<'_>> {
+    pub async fn user(&self) -> sqlx::Result<Option<User<'_>>> {
         if let Some(user_id) = self.user_id {
-            commands::get_user_by_id(user_id).await.ok()
+            commands::get_user_by_id(user_id).await.map(Some)
         } else {
-            None
+            Ok(None)
+        }
+    }
+
+    pub async fn cover_image_attachment(&self) -> sqlx::Result<Option<Attachment<'_>>> {
+        if let Some(attachment_id) = self.cover_image_attachment_id {
+            commands::get_attachment_by_id(attachment_id).await.map(Some)
+        } else {
+            Ok(None)
         }
     }
 
