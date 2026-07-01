@@ -141,11 +141,7 @@ impl<T> OrValidationErrors<T> for Option<T> {
     }
 
     fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
-        let mut validation_errors = ValidationErrors::new();
-
-        validation_errors.add(field, error);
-
-        self.ok_or(validation_errors)
+        self.ok_or_else(|| ValidationErrors::with(field, error))
     }
 }
 
@@ -156,11 +152,23 @@ impl<T, E> OrValidationErrors<T> for Result<T, E> {
     }
 
     fn or_validation_errors_with(self, field: &'static str, error: ValidationError) -> ValidationResult<T> {
+        self.map_err(|_| ValidationErrors::with(field, error))
+    }
+}
+
+#[cfg(feature = "graphql")]
+trait ValidationErrorsTrait {
+    fn with(field: &'static str, error: ValidationError) -> ValidationErrors;
+}
+
+#[cfg(feature = "graphql")]
+impl ValidationErrorsTrait for ValidationErrors {
+    fn with(field: &'static str, error: ValidationError) -> ValidationErrors {
         let mut validation_errors = ValidationErrors::new();
 
         validation_errors.add(field, error);
 
-        self.map_err(|_| validation_errors)
+        validation_errors
     }
 }
 

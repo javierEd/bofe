@@ -16,8 +16,8 @@ impl CardObject<'_> {
         self.0.id.into()
     }
 
-    async fn user(&self) -> Option<UserObject<'_>> {
-        self.0.user().await.map(UserObject)
+    async fn user(&self) -> Result<Option<UserObject<'_>>> {
+        Ok(self.0.user().await?.map(UserObject))
     }
 
     async fn board(&self) -> Result<BoardObject<'_>> {
@@ -26,6 +26,10 @@ impl CardObject<'_> {
 
     async fn list(&self) -> Result<ListObject<'_>> {
         Ok(self.0.list().await.map(ListObject)?)
+    }
+
+    async fn cover_image_attachment(&self) -> Result<Option<AttachmentObject<'_>>> {
+        Ok(self.0.cover_image_attachment().await?.map(AttachmentObject))
     }
 
     async fn content(&self, max_length: Option<u16>, strip_markdown: Option<bool>) -> String {
