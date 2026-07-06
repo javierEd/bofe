@@ -100,7 +100,13 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
                     .await
                     .or_validation_errors_with("cover_image_attachment_id", ERROR_IS_INVALID.clone())?;
 
-                if cover_image_attachment.user_id != Some(user.id) {
+                if cover_image_attachment.user_id != Some(user.id)
+                    || !cover_image_attachment
+                        .file_type()
+                        .await
+                        .or_validation_errors()?
+                        .is_raster_image()
+                {
                     return Err(ValidationErrors::with(
                         "cover_image_attachment_id",
                         ERROR_IS_INVALID.clone(),
@@ -268,7 +274,13 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
                     .await
                     .or_validation_errors_with("cover_image_attachment_id", ERROR_IS_INVALID.clone())?;
 
-                if cover_image_attachment.user_id != Some(user.id) {
+                if cover_image_attachment.user_id != Some(user.id)
+                    || !cover_image_attachment
+                        .file_type()
+                        .await
+                        .or_validation_errors()?
+                        .is_raster_image()
+                {
                     return Err(ValidationErrors::with(
                         "cover_image_attachment_id",
                         ERROR_IS_INVALID.clone(),

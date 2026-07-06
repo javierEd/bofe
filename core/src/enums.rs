@@ -29,23 +29,38 @@ pub enum ActivityAction {
 #[derive(sqlx::Type, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
 #[sqlx(type_name = "blob_file_type")]
 pub enum BlobFileType {
+    #[sqlx(rename = "application/pdf")]
+    ApplicationPdf,
     #[sqlx(rename = "image/gif")]
     ImageGif,
     #[sqlx(rename = "image/jpeg")]
     ImageJpeg,
     #[sqlx(rename = "image/png")]
     ImagePng,
+    #[sqlx(rename = "image/svg+xml")]
+    ImageSvgXml,
     #[sqlx(rename = "image/webp")]
     ImageWebp,
+    #[sqlx(rename = "video/mp4")]
+    VideoMp4,
+    #[sqlx(rename = "video/ogg")]
+    VideoOgg,
+    #[sqlx(rename = "video/webm")]
+    VideoWebm,
 }
 
 impl Display for BlobFileType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            BlobFileType::ApplicationPdf => write!(f, "application/pdf"),
             BlobFileType::ImageGif => write!(f, "image/gif"),
             BlobFileType::ImageJpeg => write!(f, "image/jpeg"),
             BlobFileType::ImagePng => write!(f, "image/png"),
+            BlobFileType::ImageSvgXml => write!(f, "image/svg+xml"),
             BlobFileType::ImageWebp => write!(f, "image/webp"),
+            BlobFileType::VideoMp4 => write!(f, "video/mp4"),
+            BlobFileType::VideoOgg => write!(f, "video/ogg"),
+            BlobFileType::VideoWebm => write!(f, "video/webm"),
         }
     }
 }
@@ -56,10 +71,17 @@ impl TryFrom<&Bytes> for BlobFileType {
     fn try_from(value: &Bytes) -> Result<Self, Self::Error> {
         let file_format = FileFormat::from_bytes(value);
 
+        println!("FILE FORMAT: {:?}", file_format);
+
         match file_format {
             FileFormat::GraphicsInterchangeFormat => Ok(Self::ImageGif),
             FileFormat::JointPhotographicExpertsGroup => Ok(Self::ImageJpeg),
+            FileFormat::Mpeg4Part14Video => Ok(Self::VideoMp4),
+            FileFormat::OggMedia | FileFormat::OggTheora => Ok(Self::VideoOgg),
+            FileFormat::PortableDocumentFormat => Ok(Self::ApplicationPdf),
             FileFormat::PortableNetworkGraphics => Ok(Self::ImagePng),
+            FileFormat::ScalableVectorGraphics => Ok(Self::ImageSvgXml),
+            FileFormat::Webm => Ok(Self::VideoWebm),
             FileFormat::Webp => Ok(Self::ImageWebp),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -72,15 +94,35 @@ impl TryFrom<&Bytes> for BlobFileType {
 impl BlobFileType {
     pub fn extension(&self) -> &str {
         match self {
+            Self::ApplicationPdf => "pdf",
             Self::ImageGif => "gif",
-            Self::ImageJpeg => "jpeg",
+            Self::ImageJpeg => "jpg",
             Self::ImagePng => "png",
+            Self::ImageSvgXml => "svg",
             Self::ImageWebp => "webp",
+            Self::VideoMp4 => "mp4",
+            Self::VideoOgg => "ogg",
+            Self::VideoWebm => "webm",
         }
     }
 
-    pub fn support_thumbnails(&self) -> bool {
+    pub fn is_raster_image(&self) -> bool {
         [Self::ImageGif, Self::ImageJpeg, Self::ImagePng, Self::ImageWebp].contains(self)
+    }
+
+    pub fn support_thumbnails(&self) -> bool {
+        [
+            Self::ApplicationPdf,
+            Self::ImageGif,
+            Self::ImageJpeg,
+            Self::ImagePng,
+            Self::ImageSvgXml,
+            Self::ImageWebp,
+            Self::VideoMp4,
+            Self::VideoOgg,
+            Self::VideoWebm,
+        ]
+        .contains(self)
     }
 }
 

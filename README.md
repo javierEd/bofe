@@ -55,6 +55,8 @@ With **Bofe** you can easily build kanban style boards for your projects, person
 
 ## Run Requirements
 
+- FFmpeg 7.x
+- Poppler Utils 25.x
 - PostgreSQL 18.x
 - Redis 8.x
 
@@ -85,6 +87,7 @@ With **Bofe** you can easily build kanban style boards for your projects, person
 | SESSION_TOKEN_MIN_LENGTH     | Number  | 64                                              | api             |
 | SESSION_TOKEN_MAX_LENGTH     | Number  | 128                                             | api             |
 | STORAGE_FONT_PATH            | String  | /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf | api             |
+| STORAGE_MAX_FILE_SIZE_BYTES  | Number  | 104857600                                       | api             |
 | STORAGE_PATH                 | String  | ./storage/                                      | api,monitor     |
 | STORAGE_URL                  | String  | http://127.0.0.1:8005/storage/                  | api             |
 
