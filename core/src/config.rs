@@ -9,6 +9,8 @@ use std::path::PathBuf;
 use envconfig::Envconfig;
 
 #[cfg(feature = "graphql")]
+use bytesize::ByteSize;
+#[cfg(feature = "graphql")]
 use url::Url;
 
 #[cfg(feature = "graphql")]
@@ -122,9 +124,19 @@ pub(crate) struct StorageConfig {
         default = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     )]
     pub font_path: PathBuf,
+    #[cfg(feature = "graphql")]
+    #[envconfig(from = "STORAGE_MAX_FILE_SIZE_BYTES", default = "104857600")]
+    pub max_file_size_bytes: u64,
     #[envconfig(from = "STORAGE_PATH", default = "./storage/")]
     pub path: PathBuf,
     #[cfg(feature = "graphql")]
     #[envconfig(from = "STORAGE_URL", default = "http://127.0.0.1:8005/storage/")]
     pub url: Url,
+}
+
+#[cfg(feature = "graphql")]
+impl StorageConfig {
+    pub fn max_file_size(&self) -> ByteSize {
+        ByteSize(self.max_file_size_bytes)
+    }
 }

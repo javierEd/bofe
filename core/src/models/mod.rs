@@ -1,8 +1,5 @@
 use std::borrow::Cow;
 
-#[cfg(feature = "graphql")]
-use std::path::PathBuf;
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -24,6 +21,8 @@ mod board;
 mod user;
 
 #[cfg(feature = "graphql")]
+mod blob;
+#[cfg(feature = "graphql")]
 mod card;
 #[cfg(feature = "graphql")]
 mod label;
@@ -36,6 +35,8 @@ pub use user::User;
 
 #[cfg(feature = "graphql")]
 pub(crate) use activity::ActivityExt;
+#[cfg(feature = "graphql")]
+pub(crate) use blob::Blob;
 #[cfg(feature = "graphql")]
 pub(crate) use card::Card;
 #[cfg(feature = "graphql")]
@@ -139,48 +140,6 @@ pub struct AttachmentKey {
 impl AttachmentKey {
     pub async fn attachment(&self) -> sqlx::Result<Attachment<'_>> {
         commands::get_attachment_by_id(self.attachment_id).await
-    }
-}
-
-#[cfg(feature = "graphql")]
-#[derive(Clone, Deserialize, Serialize)]
-pub struct Blob<'a> {
-    pub id: Uuid,
-    pub file_type: BlobFileType,
-    pub size_bytes: i64,
-    pub sha256_checksum: Cow<'a, str>,
-    pub created_at: DateTime<Utc>,
-}
-
-#[cfg(feature = "graphql")]
-impl Blob<'_> {
-    pub fn directory(&self) -> PathBuf {
-        STORAGE_CONFIG.path.join(format!("blobs/{}", self.id))
-    }
-
-    pub fn path(&self) -> PathBuf {
-        self.directory().join(format!("default.{}", self.file_type.extension()))
-    }
-
-    pub fn thumbnail_file_type(&self) -> BlobFileType {
-        match self.file_type {
-            BlobFileType::ImagePng => BlobFileType::ImagePng,
-            BlobFileType::ImageWebp => BlobFileType::ImageWebp,
-            _ => BlobFileType::ImageJpeg,
-        }
-    }
-
-    pub fn thumbnail_path(&self, width: u16, height: u16) -> PathBuf {
-        self.directory()
-            .join(format!("thumbnail-{width}x{height}.{}", self.file_type.extension()))
-    }
-
-    pub fn read(&self) -> std::io::Result<Vec<u8>> {
-        std::fs::read(self.path())
-    }
-
-    pub fn read_thumbnail(&self, width: u16, height: u16) -> anyhow::Result<Vec<u8>> {
-        commands::get_or_create_blob_thumbnail(self, width, height)
     }
 }
 
