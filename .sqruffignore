@@ -1,0 +1,3 @@
+migrations/202605*.sql
+migrations/202606*.sql
+migrations/20260701004522_add_cover_image_to_cards.up.sql
