@@ -277,3 +277,40 @@ pub(crate) fn verify_password(encrypted_password: &str, password: &str) -> bool 
 
     argon2.verify_password(password.as_bytes(), &password_hash).is_ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::{fake_password, fake_username};
+
+    use super::*;
+
+    #[test]
+    fn text_icon_with_valid_params_return_ok() {
+        let usernane = fake_username();
+
+        let result = text_icon(username);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn verify_password_with_valid_params_return_true() {
+        let password = fake_password();
+        let encrypted_password = encrypt_password(password);
+
+        let is_valid = verify_password(encrypted_password, password);
+
+        assert!(is_valid);
+    }
+
+    #[test]
+    fn verify_password_with_invalid_params_return_false() {
+        let password = fake_password();
+        let encrypted_password = encrypt_password(password);
+        let wrong_password = fake_password();
+
+        let is_valid = verify_password(encrypted_password, wrong_password);
+
+        assert!(!is_valid);
+    }
+}
