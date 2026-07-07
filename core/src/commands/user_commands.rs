@@ -383,3 +383,79 @@ pub(crate) async fn user_email_exists(email: &str) -> bool {
 pub(crate) async fn user_username_exists(username: &str) -> bool {
     get_user_id_by_username(username).await.is_ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::{fake_email, fake_password, fake_username, insert_test_user};
+
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn authenticate_user_with_valid_params_return_ok() {
+        let password = fake_password();
+        let user = insert_test_user(Some(&password)).await;
+
+        let result = authenticate_user(&user.username, &password).await;
+
+        assert!(result.is_ok());
+
+        let authenticated_user = result.unwrap();
+
+        assert_eq!(authenticated_user.id, user.id);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn authenticate_user_with_invalid_password_return_err() {
+        let password = fake_password();
+        let user = insert_test_user(None).await;
+
+        let result = authenticate_user(&user.username, &password).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn delete_user_with_valid_params_return_ok() {
+        let user = insert_test_user(None).await;
+
+        let result = delete_user(&user).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn user_email_exists_with_unused_email_return_false() {
+        let email = fake_email();
+
+        let is_used = user_email_exists(&email).await;
+
+        assert!(!is_used);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn user_email_exists_with_used_email_return_true() {
+        let user = insert_test_user(None).await;
+
+        let is_used = user_email_exists(&user.email).await;
+
+        assert!(is_used);
+    }
+
+    #[tokio::test]
+    async fn user_username_exists_with_unused_username_return_false() {
+        let username = fake_username();
+
+        let is_used = user_username_exists(&username).await;
+
+        assert!(!is_used);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn user_username_exists_with_used_username_return_true() {
+        let user = insert_test_user(None).await;
+
+        let is_used = user_username_exists(&user.username).await;
+
+        assert!(is_used);
+    }
+}

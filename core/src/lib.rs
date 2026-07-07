@@ -20,6 +20,9 @@ mod pagination;
 #[cfg(feature = "graphql")]
 mod scalars;
 
+#[cfg(test)]
+mod test_utils;
+
 pub mod commands;
 pub mod enums;
 pub mod jobs;
