@@ -33,7 +33,12 @@ cached = { version = "2.0.2", features = [
 chrono.workspace = true
 convert_case = "0.11.0"
 envconfig.workspace = true
-file-format = { version = "0.29.0", features = ["reader-ebml", "reader-mp4", "reader-pdf", "reader-xml"] }
+file-format = { version = "0.29.0", features = [
+    "reader-ebml",
+    "reader-mp4",
+    "reader-pdf",
+    "reader-xml",
+] }
 fluent-bundle = "0.16.0"
 fluent-templates = "0.14.0"
 futures = "0.3.32"
@@ -66,7 +71,7 @@ uuid.workspace = true
 validator = { version = "0.20.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
-fake = "5.1.0"
+fake = { version = "5.1.0", features = ["chrono"] }
 
 [features]
 graphql = [

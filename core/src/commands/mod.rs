@@ -288,7 +288,7 @@ mod tests {
     fn text_icon_with_valid_params_return_ok() {
         let usernane = fake_username();
 
-        let result = text_icon(username);
+        let result = text_icon(&usernane, 64);
 
         assert!(result.is_ok());
     }
@@ -296,9 +296,9 @@ mod tests {
     #[test]
     fn verify_password_with_valid_params_return_true() {
         let password = fake_password();
-        let encrypted_password = encrypt_password(password);
+        let encrypted_password = encrypt_password(&password);
 
-        let is_valid = verify_password(encrypted_password, password);
+        let is_valid = verify_password(&encrypted_password, &password);
 
         assert!(is_valid);
     }
@@ -306,10 +306,10 @@ mod tests {
     #[test]
     fn verify_password_with_invalid_params_return_false() {
         let password = fake_password();
-        let encrypted_password = encrypt_password(password);
+        let encrypted_password = encrypt_password(&password);
         let wrong_password = fake_password();
 
-        let is_valid = verify_password(encrypted_password, wrong_password);
+        let is_valid = verify_password(&encrypted_password, &wrong_password);
 
         assert!(!is_valid);
     }

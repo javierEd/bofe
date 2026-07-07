@@ -1,26 +1,24 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
+use fake::Fake;
 use fake::faker::chrono::en::DateTimeBefore;
 use fake::faker::internet::en::{FreeEmail, Password, Username};
 use fake::faker::name::en::Name;
-use fake::{Fake, Faker};
 use rand::rng;
 
 use crate::commands;
 use crate::enums::{CountryCode, LanguageCode};
+use crate::models::User;
 use crate::params::UserParams;
 
-fn fake_birthdate() -> String {
-    DateTimeBefore(Utc::now())
-        .fake::<DateTime<Utc>>()
-        .date_naive()
-        .to_string()
+fn fake_birthdate() -> NaiveDate {
+    DateTimeBefore(Utc::now()).fake::<DateTime<Utc>>().date_naive()
 }
 
 fn fake_country_code() -> CountryCode {
     CountryCode::VE
 }
 
-fn fake_email() -> String {
+pub fn fake_email() -> String {
     FreeEmail().fake_with_rng(&mut rng())
 }
 
@@ -36,8 +34,8 @@ pub fn fake_name() -> String {
     name
 }
 
-fn fake_password() -> String {
-    Password(6..=128).fake()
+pub fn fake_password() -> String {
+    Password(6..129).fake()
 }
 
 pub fn fake_username() -> String {
@@ -48,12 +46,12 @@ pub fn fake_username() -> String {
     username
 }
 
-pub async fn insert_test_user(password: Option<String>) -> User {
+pub async fn insert_test_user<'a>(password: Option<&'_ str>) -> User<'a> {
     let username = fake_username();
     let email = fake_email();
 
     let password = if let Some(password) = password {
-        password
+        password.to_owned()
     } else {
         fake_password()
     };
@@ -69,7 +67,7 @@ pub async fn insert_test_user(password: Option<String>) -> User {
         password,
         full_name,
         birthdate,
-        language_code,
+        language_code: Some(language_code),
         country_code,
     })
     .await
