@@ -88,6 +88,8 @@ pub static ERROR_PASSWORD_MUST_CHANGE: LazyLock<ValidationError> = LazyLock::new
 });
 
 #[cfg(feature = "graphql")]
+pub const KEY_TEXT_FAILED_TO_ARCHIVE_CARD: &str = "failed-to-archive-card";
+#[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CONFIRM_EMAIL: &str = "failed-to-confirm-email";
 #[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_CONFIRM_PASSWORD_RESET: &str = "failed-to-confirm-password-reset";
@@ -99,6 +101,8 @@ pub const KEY_TEXT_FAILED_TO_CREATE_USER: &str = "failed-to-create-user";
 pub const KEY_TEXT_FAILED_TO_DELETE_USER: &str = "failed-to-delete-user";
 #[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_SEND_CONFIRMATION: &str = "failed-to-send-confirmation";
+#[cfg(feature = "graphql")]
+pub const KEY_TEXT_FAILED_TO_UNARCHIVE_CARD: &str = "failed-to-unarchive-card";
 #[cfg(feature = "graphql")]
 pub const KEY_TEXT_FAILED_TO_UPDATE_EMAIL: &str = "failed-to-update-email";
 #[cfg(feature = "graphql")]

@@ -68,6 +68,30 @@ impl CardObject<'_> {
         self.0.position
     }
 
+    async fn is_archivable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_archivable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn is_archived(&self) -> bool {
+        self.0.is_archived()
+    }
+
+    async fn is_deletable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_deletable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     async fn is_editable(&self, ctx: &Context<'_>) -> bool {
         if let Some(user) = ctx.user_opt()
             && self.0.is_editable(user)
@@ -81,6 +105,16 @@ impl CardObject<'_> {
     async fn is_movable(&self, ctx: &Context<'_>) -> Result<bool> {
         if let Some(user) = ctx.user_opt()
             && self.0.is_movable(user).await?
+        {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn is_unarchivable(&self, ctx: &Context<'_>) -> Result<bool> {
+        if let Some(user) = ctx.user_opt()
+            && self.0.is_unarchivable(user).await?
         {
             Ok(true)
         } else {

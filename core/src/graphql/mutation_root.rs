@@ -48,6 +48,18 @@ fn to_mutation_error(message: &str, errors: Option<ValidationErrors>) -> Error {
 #[Object]
 impl MutationRoot {
     #[graphql(guard = "UserGuard")]
+    async fn archive_card(&self, ctx: &Context<'_>, id: Uuid) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+        let card = commands::get_card_by_id(id).await?;
+
+        commands::archive_card(user, &card)
+            .await
+            .map(CardObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_ARCHIVE_CARD), None))
+    }
+
+    #[graphql(guard = "UserGuard")]
     async fn confirm_email(
         &self,
         ctx: &Context<'_>,
@@ -267,6 +279,18 @@ impl MutationRoot {
             .await
             .map(ConfirmationObject)
             .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_SEND_CONFIRMATION), None))
+    }
+
+    #[graphql(guard = "UserGuard")]
+    async fn unarchive_card(&self, ctx: &Context<'_>, id: Uuid) -> Result<CardObject<'_>> {
+        let user = ctx.user();
+        let l10n = ctx.l10n();
+        let card = commands::get_card_by_id(id).await?;
+
+        commands::unarchive_card(user, &card)
+            .await
+            .map(CardObject)
+            .map_err(|_| to_mutation_error(&l10n.text(KEY_TEXT_FAILED_TO_UNARCHIVE_CARD), None))
     }
 
     #[graphql(guard = "UserGuard")]

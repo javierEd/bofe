@@ -12,8 +12,49 @@ use crate::{db_pool, jobs_storage};
 
 use super::*;
 
+pub(crate) async fn archive_all_cards(list: &List<'_>) -> sqlx::Result<()> {
+    let db_pool = db_pool().await;
+
+    sqlx::query!(
+        "UPDATE cards SET archived_at = current_timestamp WHERE list_id = $1 AND archived_at IS NULL",
+        list.id,
+    )
+    .execute(db_pool)
+    .await?;
+
+    Ok(())
+}
+
+pub(crate) async fn archive_card<'a>(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<Card<'a>> {
+    if !card.is_archivable(user).await? {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let board = card.board().await?;
+    let list = card.list().await?;
+
+    let db_pool = db_pool().await;
+
+    let archived_card = sqlx::query_as!(
+        Card,
+        "UPDATE cards SET archived_at = current_timestamp WHERE id = $1 AND archived_at IS NULL RETURNING *",
+        card.id, // $1
+    )
+    .fetch_one(db_pool)
+    .await?;
+
+    remove_all_cards_cache(&list).await;
+
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::ArchiveCard, card, &archived_card)
+        .await;
+
+    Ok(archived_card)
+}
+
 pub(crate) async fn delete_card(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<bool> {
-    if !card.is_editable(user) {
+    if !card.is_deletable(user).await? {
         return Err(sqlx::Error::RowNotFound);
     }
 
@@ -146,12 +187,14 @@ pub async fn insert_card<'a>(user: &User<'_>, params: CardParams) -> ValidationR
 
     let card = sqlx::query_as!(
         Card,
-        "INSERT INTO cards (list_id, user_id, cover_image_attachment_id, content, position) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        list.id,  // $1
-        user.id,  // $2
+        "INSERT INTO cards (list_id, user_id, cover_image_attachment_id, content, position, archived_at)
+        VALUES ($1, $2, $3, $4, $5, CASE WHEN $6 IS TRUE THEN current_timestamp ELSE NULL END) RETURNING *",
+        list.id,                   // $1
+        user.id,                   // $2
         cover_image_attachment_id, // $3
-        content,  // $4
-        position, // $5
+        content,                   // $4
+        position,                  // $5
+        list.archive_cards,        // $6
     )
     .fetch_one(db_pool)
     .await
@@ -214,6 +257,34 @@ pub async fn paginate_cards<'a>(cursor_params: CursorParams, list: &List<'_>) ->
         },
     )
     .await
+}
+
+pub(crate) async fn unarchive_card<'a>(user: &User<'_>, card: &Card<'_>) -> sqlx::Result<Card<'a>> {
+    if !card.is_unarchivable(user).await? {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let board = card.board().await?;
+    let list = card.list().await?;
+
+    let db_pool = db_pool().await;
+
+    let unarchived_card = sqlx::query_as!(
+        Card,
+        "UPDATE cards SET archived_at = NULL WHERE id = $1 AND archived_at IS NOT NULL RETURNING *",
+        card.id, // $1
+    )
+    .fetch_one(db_pool)
+    .await?;
+
+    remove_all_cards_cache(&list).await;
+
+    jobs_storage()
+        .await
+        .push_activity(user, &board, ActivityAction::UnarchiveCard, card, &unarchived_card)
+        .await;
+
+    Ok(unarchived_card)
 }
 
 pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParams) -> ValidationResult<Card<'a>> {
@@ -319,16 +390,30 @@ pub async fn update_card<'a>(user: &User<'_>, card: &Card<'a>, params: CardParam
     let cover_image_attachment_id = cover_image_attachment.map(|attachment| attachment.id);
     let content = params.content.trim();
 
+    let archive_card = if let Some(new_list) = &new_list {
+        new_list.archive_cards
+    } else {
+        false
+    };
+
     let db_pool = db_pool().await;
 
     let updated_card = sqlx::query_as!(
         Card,
-        "UPDATE cards SET list_id = $2, cover_image_attachment_id = $3, content = $4, position = $5 WHERE id = $1 RETURNING *",
-        card.id,        // $1
-        params.list_id, // $2
+        "UPDATE cards
+        SET
+            list_id = $2,
+            cover_image_attachment_id = $3,
+            content = $4,
+            position = $5,
+            archived_at = CASE WHEN $6 IS TRUE THEN current_timestamp ELSE NULL END
+        WHERE id = $1 RETURNING *",
+        card.id,                   // $1
+        params.list_id,            // $2
         cover_image_attachment_id, // $3
-        content,        // $4
-        position,       // $5
+        content,                   // $4
+        position,                  // $5
+        archive_card,              // $6
     )
     .fetch_one(db_pool)
     .await
@@ -388,10 +473,13 @@ pub async fn update_card_list<'a>(
 
     let updated_card = sqlx::query_as!(
         Card,
-        "UPDATE cards SET list_id = $1, position = $2 WHERE id = $3 RETURNING *",
-        new_list.id, // $1
-        position,    // $2
-        card.id,     // $3
+        "UPDATE cards
+        SET list_id = $1, position = $2, archived_at = CASE WHEN $4 IS TRUE THEN current_timestamp ELSE NULL END
+        WHERE id = $3 RETURNING *",
+        new_list.id,            // $1
+        position,               // $2
+        card.id,                // $3
+        new_list.archive_cards, // $4
     )
     .fetch_one(&mut *transaction)
     .await
@@ -493,4 +581,200 @@ pub async fn update_card_position<'a>(user: &User<'_>, card: &Card<'_>, position
         .await;
 
     Ok(updated_card)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::{fake_paragraph, insert_test_card, insert_test_list, insert_test_user};
+
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn archive_all_cards_with_valid_list_returns_ok() {
+        let list = insert_test_list(None, None).await;
+
+        let result = archive_all_cards(&list).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn archive_card_with_valid_params_returns_ok() {
+        let card = insert_test_card(false).await;
+        let user = card.user().await.unwrap().unwrap();
+
+        let result = archive_card(&user, &card).await;
+
+        assert!(result.is_ok());
+
+        let archived_card = result.unwrap();
+
+        assert_eq!(archived_card.id, card.id);
+        assert!(archived_card.archived_at.is_some());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn archive_card_with_invalid_user_returns_err() {
+        let invalid_user = insert_test_user(None).await;
+        let card = insert_test_card(false).await;
+
+        let result = archive_card(&invalid_user, &card).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn insert_card_with_valid_params_returns_ok() {
+        let user = insert_test_user(None).await;
+        let list = insert_test_list(Some(&user), None).await;
+        let content = fake_paragraph();
+
+        let result = insert_card(
+            &user,
+            CardParams {
+                list_id: list.id,
+                cover_image_attachment_id: None,
+                content: content.clone(),
+                attachment_ids: vec![],
+                label_ids: vec![],
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        let card = result.unwrap();
+
+        assert_eq!(card.list_id, list.id);
+        assert_eq!(card.user_id, Some(user.id));
+        assert_eq!(card.content, content);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn insert_card_with_invalid_list_returns_err() {
+        let user = insert_test_user(None).await;
+        let invalid_list = insert_test_list(None, None).await;
+        let content = fake_paragraph();
+
+        let result = insert_card(
+            &user,
+            CardParams {
+                list_id: invalid_list.id,
+                cover_image_attachment_id: None,
+                content: content.clone(),
+                attachment_ids: vec![],
+                label_ids: vec![],
+            },
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn unarchive_card_with_valid_params_returns_ok() {
+        let card = insert_test_card(true).await;
+        let user = card.user().await.unwrap().unwrap();
+
+        let result = unarchive_card(&user, &card).await;
+
+        assert!(result.is_ok());
+
+        let unarchived_card = result.unwrap();
+
+        assert_eq!(unarchived_card.id, card.id);
+        assert!(unarchived_card.archived_at.is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn unarchive_card_with_invalid_user_returns_err() {
+        let invalid_user = insert_test_user(None).await;
+        let card = insert_test_card(true).await;
+
+        let result = unarchive_card(&invalid_user, &card).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_card_with_valid_params_returns_ok() {
+        let card = insert_test_card(false).await;
+        let user = card.user().await.unwrap().unwrap();
+        let new_content = fake_paragraph();
+
+        let result = update_card(
+            &user,
+            &card,
+            CardParams {
+                list_id: card.list_id,
+                cover_image_attachment_id: card.cover_image_attachment_id,
+                content: new_content.clone(),
+                attachment_ids: vec![],
+                label_ids: vec![],
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        let updated_card = result.unwrap();
+
+        assert_eq!(updated_card.id, card.id);
+        assert_eq!(updated_card.content, new_content);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_card_with_invalid_user_returns_err() {
+        let invalid_user = insert_test_user(None).await;
+        let card = insert_test_card(false).await;
+        let new_content = fake_paragraph();
+
+        let result = update_card(
+            &invalid_user,
+            &card,
+            CardParams {
+                list_id: card.list_id,
+                cover_image_attachment_id: card.cover_image_attachment_id,
+                content: new_content.clone(),
+                attachment_ids: vec![],
+                label_ids: vec![],
+            },
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_card_list_with_valid_params_returns_ok() {
+        let card = insert_test_card(false).await;
+        let user = card.user().await.unwrap().unwrap();
+        let board = card.board().await.unwrap();
+        let new_list = insert_test_list(Some(&user), Some(&board)).await;
+        let new_position = 0;
+
+        let result = update_card_list(&user, &card, &new_list, new_position).await;
+
+        assert!(result.is_ok());
+
+        let updated_card = result.unwrap();
+
+        assert_eq!(updated_card.id, card.id);
+        assert_eq!(updated_card.list_id, new_list.id);
+        assert_eq!(updated_card.position, new_position);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_card_list_with_invalid_user_returns_err() {
+        let invalid_user = insert_test_user(None).await;
+        let card = insert_test_card(false).await;
+        let user = card.user().await.unwrap().unwrap();
+        let board = card.board().await.unwrap();
+        let new_list = insert_test_list(Some(&user), Some(&board)).await;
+        let new_position = 0;
+
+        let result = update_card_list(&invalid_user, &card, &new_list, new_position).await;
+
+        assert!(result.is_err());
+    }
 }

@@ -13,6 +13,7 @@ pub struct List<'a> {
     pub board_id: Uuid,
     pub name: Cow<'a, str>,
     pub position: i16,
+    pub archive_cards: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -22,18 +23,41 @@ impl List<'_> {
         commands::get_board_by_id(self.board_id).await
     }
 
+    /// Returns true if the user can archive the card
+    ///
+    /// Only the board owner or admin members can archive cards
+    pub async fn can_archive_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_archive_card(user).await)
+    }
+
     /// Returns true if the user can create cards on the list
     ///
     /// Only members of the board can create cards on the list
     pub async fn can_create_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
-        Ok(self.board().await?.can_create_card(user).await)
+        Ok(self.board().await?.can_create_card(user).await
+            && (!self.archive_cards || self.can_archive_card(user).await?))
+    }
+
+    /// Returns true if the user can delete the card
+    ///
+    /// Only the board owner or admin members can delete cards
+    pub async fn can_delete_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_delete_card(user).await)
     }
 
     /// Returns true if the user can move the card
     ///
     /// Only the board owner or admin members can move cards
     pub async fn can_move_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
-        Ok(self.board().await?.can_move_card(user).await)
+        Ok(self.board().await?.can_move_card(user).await
+            && (!self.archive_cards || self.can_archive_card(user).await?))
+    }
+
+    /// Returns true if the user can unarchive the card
+    ///
+    /// Only the board owner or admin members can unarchive cards
+    pub async fn can_unarchive_card(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.board().await?.can_unarchive_card(user).await)
     }
 
     /// Returns true if the user can edit the list

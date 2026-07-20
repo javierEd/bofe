@@ -23,6 +23,13 @@ pub struct Board<'a> {
 }
 
 impl Board<'_> {
+    /// Returns true if the user can archive cards on the board
+    ///
+    /// Only the board owner or admin members can archive cards
+    pub async fn can_archive_card(&self, user: &User<'_>) -> bool {
+        self.is_admin(user).await
+    }
+
     /// Returns true if the user can create cards
     ///
     /// Only members of the board can create cards
@@ -51,6 +58,13 @@ impl Board<'_> {
         self.is_editable(user)
     }
 
+    /// Returns true if the user can delete cards on the board
+    ///
+    /// Only the board owner or admin members can delete cards
+    pub async fn can_delete_card(&self, user: &User<'_>) -> bool {
+        self.is_admin(user).await
+    }
+
     /// Returns true if the user can move cards on the board
     ///
     /// Only the board owner or admin members can move cards
@@ -63,6 +77,13 @@ impl Board<'_> {
     /// Only the board owner can move lists
     pub fn can_move_list(&self, user: &User<'_>) -> bool {
         self.is_editable(user)
+    }
+
+    /// Returns true if the user can unarchive cards on the board
+    ///
+    /// Only the board owner or admin members can unarchive cards
+    pub async fn can_unarchive_card(&self, user: &User<'_>) -> bool {
+        self.is_admin(user).await
     }
 
     /// Returns true if the user is the owner or an admin member of the board

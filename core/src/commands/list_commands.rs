@@ -24,7 +24,7 @@ use crate::pagination::{CursorPage, CursorParams};
 use crate::params::{ListParams, UpdateListParams};
 
 #[cfg(feature = "graphql")]
-use super::{AsyncRedisCacheExt, OrValidationErrors, ValidationResult, get_visible_board_by_id, redis_cache_store};
+use super::*;
 
 #[cfg(feature = "graphql")]
 pub(crate) async fn delete_list(user: &User<'_>, list: &List<'_>) -> sqlx::Result<bool> {
@@ -143,10 +143,11 @@ pub async fn insert_list<'a>(user: &User<'_>, params: ListParams) -> ValidationR
 
     let list = sqlx::query_as!(
         List,
-        "INSERT INTO lists (board_id, name, position) VALUES ($1, $2, $3) RETURNING *",
-        board.id, // $1
-        name,     // $2
-        position, // $3
+        "INSERT INTO lists (board_id, name, position, archive_cards) VALUES ($1, $2, $3, $4) RETURNING *",
+        board.id,             // $1
+        name,                 // $2
+        position,             // $3
+        params.archive_cards, // $4
     )
     .fetch_one(db_pool)
     .await
@@ -213,7 +214,7 @@ pub async fn remove_all_lists_cache(board: &Board<'_>) {
 pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateListParams) -> ValidationResult<List<'a>> {
     params.validate()?;
 
-    if params.name == list.name {
+    if params.name == list.name && params.archive_cards == list.archive_cards {
         return Ok(list.clone());
     }
 
@@ -237,15 +238,20 @@ pub async fn update_list<'a>(user: &User<'_>, list: &List<'a>, params: UpdateLis
 
     let updated_list = sqlx::query_as!(
         List,
-        "UPDATE lists SET name = $2 WHERE id = $1 RETURNING *",
-        list.id, // $1
-        name,    // $2
+        "UPDATE lists SET name = $2, archive_cards = $3 WHERE id = $1 RETURNING *",
+        list.id,              // $1
+        name,                 // $2
+        params.archive_cards, // $3
     )
     .fetch_one(db_pool)
     .await
     .or_validation_errors()?;
 
     remove_all_lists_cache(&board).await;
+
+    if params.archive_cards && !list.archive_cards {
+        let _ = archive_all_cards(&updated_list).await;
+    }
 
     jobs_storage()
         .await
@@ -323,4 +329,53 @@ pub async fn update_list_position<'a>(user: &User<'_>, list: &List<'_>, position
         .await;
 
     Ok(updated_list)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::{fake_name, insert_test_list, insert_test_user};
+
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_list_with_valid_params_returns_ok() {
+        let user = insert_test_user(None).await;
+        let list = insert_test_list(Some(&user), None).await;
+        let name = fake_name();
+
+        let result = update_list(
+            &user,
+            &list,
+            UpdateListParams {
+                name: name.clone(),
+                archive_cards: false,
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        let updated_list = result.unwrap();
+
+        assert_eq!(updated_list.name, name);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn update_list_with_invalid_user_returns_err() {
+        let invalid_user = insert_test_user(None).await;
+        let list = insert_test_list(None, None).await;
+        let name = fake_name();
+
+        let result = update_list(
+            &invalid_user,
+            &list,
+            UpdateListParams {
+                name,
+                archive_cards: false,
+            },
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
 }
