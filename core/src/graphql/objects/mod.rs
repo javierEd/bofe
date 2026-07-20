@@ -146,6 +146,10 @@ impl ListObject<'_> {
             .collect())
     }
 
+    async fn archive_cards(&self) -> bool {
+        self.0.archive_cards
+    }
+
     async fn can_create_card(&self, ctx: &Context<'_>) -> Result<bool> {
         if let Some(user) = ctx.user_opt()
             && self.0.can_create_card(user).await?

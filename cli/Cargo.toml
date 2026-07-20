@@ -8,6 +8,6 @@ repository.workspace = true
 
 [dependencies]
 chrono.workspace = true
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.2", features = ["derive"] }
 tokio.workspace = true
 bofe-core = { workspace = true, features = ["graphql"] }

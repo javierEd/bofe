@@ -62,6 +62,8 @@ impl<'a> ActivityExt<Card<'a>> for Activity {
             ActivityAction::CreateCard
             | ActivityAction::UpdateCard
             | ActivityAction::UpdateCardList
+            | ActivityAction::ArchiveCard
+            | ActivityAction::UnarchiveCard
             | ActivityAction::UpdateCardPosition => self
                 .data
                 .clone()

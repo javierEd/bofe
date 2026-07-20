@@ -21,6 +21,8 @@ pub enum ActivityAction {
     UpdateCard,
     UpdateCardList,
     UpdateCardPosition,
+    ArchiveCard,
+    UnarchiveCard,
     DeleteCard,
 }
 

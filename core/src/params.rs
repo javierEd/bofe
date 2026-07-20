@@ -107,6 +107,7 @@ pub(crate) struct CardParams {
 #[derive(Validate)]
 pub struct ConfirmationParams {
     pub id: Uuid,
+    #[cfg_attr(feature = "graphql", graphql(secret))]
     #[validate(
         custom(function = "validate_presence"),
         length(max = 255, message = "Must have at most 255 characters")
@@ -135,6 +136,8 @@ pub(crate) struct ListParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub name: String,
+    #[cfg_attr(feature = "graphql", graphql(default))]
+    pub archive_cards: bool,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]
@@ -191,6 +194,8 @@ pub(crate) struct UpdateListParams {
         length(max = 255, message = "Must have at most 255 characters")
     )]
     pub name: String,
+    #[cfg_attr(feature = "graphql", graphql(default))]
+    pub archive_cards: bool,
 }
 
 #[cfg_attr(feature = "graphql", derive(async_graphql::InputObject))]

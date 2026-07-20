@@ -15,6 +15,7 @@ pub struct Card<'a> {
     pub cover_image_attachment_id: Option<Uuid>,
     pub content: Cow<'a, str>,
     pub position: i16,
+    pub archived_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -23,6 +24,7 @@ impl Card<'_> {
     pub async fn board<'a>(&self) -> sqlx::Result<Board<'a>> {
         self.list().await?.board().await
     }
+
     pub async fn list(&self) -> sqlx::Result<List<'_>> {
         commands::get_list_by_id(self.list_id).await
     }
@@ -99,18 +101,43 @@ impl Card<'_> {
         }
     }
 
+    /// Returns true if the user can archive the card
+    ///
+    /// Only the board owner or admin members can archive the card
+    pub async fn is_archivable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.list().await?.can_archive_card(user).await? && !self.is_archived())
+    }
+
+    pub fn is_archived(&self) -> bool {
+        self.archived_at.is_some()
+    }
+
+    /// Returns true if the user can delete the card
+    ///
+    /// Only the owner of the card can delete the card
+    pub async fn is_deletable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok((self.user_id == Some(user.id) || self.list().await?.can_delete_card(user).await?) && !self.is_archived())
+    }
+
     /// Returns true if the user can edit the card
     ///
     /// Only the owner of the card can edit the card
     pub fn is_editable(&self, user: &User) -> bool {
-        self.user_id == Some(user.id)
+        self.user_id == Some(user.id) && !self.is_archived()
     }
 
     /// Returns true if the user can move the card
     ///
     /// Only the board owner or admin members can move the card
     pub async fn is_movable(&self, user: &User<'_>) -> sqlx::Result<bool> {
-        self.list().await?.can_move_card(user).await
+        Ok(self.list().await?.can_move_card(user).await? && !self.is_archived())
+    }
+
+    /// Returns true if the user can unarchive the card
+    ///
+    /// Only the board owner or admin members can unarchive the card
+    pub async fn is_unarchivable(&self, user: &User<'_>) -> sqlx::Result<bool> {
+        Ok(self.list().await?.can_unarchive_card(user).await? && self.is_archived())
     }
 
     /// Returns true if the card is visible to the user
